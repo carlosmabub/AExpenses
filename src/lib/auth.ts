@@ -5,12 +5,13 @@ import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { getDb } from "@/db";
 import { employees, type Employee } from "@/db/schema";
+import { serverSecret } from "./secrets";
 
 const COOKIE = "aex_session";
 const MAX_AGE = 60 * 60 * 24 * 30;
 
 function secret(): string {
-  return process.env.AEX_SESSION_SECRET || "aexpenses-dev-session-secret";
+  return serverSecret("AEX_SESSION_SECRET", "aexpenses-dev-session-secret");
 }
 
 function sign(value: string): string {
@@ -40,7 +41,7 @@ export async function currentUser(): Promise<Employee | null> {
   const expected = Buffer.from(sign(value));
   const actual = Buffer.from(signature);
   if (expected.length !== actual.length || !timingSafeEqual(expected, actual)) return null;
-  const user = getDb().select().from(employees).where(eq(employees.id, Number(value))).get();
+  const user = await (await getDb()).select().from(employees).where(eq(employees.id, Number(value))).get();
   return user?.active ? user : null;
 }
 

@@ -60,18 +60,55 @@ Com o arquivo diário real, mude para **modo real** em *Importar arquivo*: as co
 ```
 src/lib/bvk3/       leitor do layout BVK3, tipos de lançamento e importação
 src/lib/            prazo/relógio, sugestão por MCC, classificação, exportação Excel, autenticação
-src/db/             schema (Drizzle + SQLite) e seed
+src/db/             schema (Drizzle + SQLite/Turso) e seed
 src/app/app/        telas do funcionário (mobile)
 src/app/admin/      telas do financeiro (desktop)
 drizzle/            migrações SQL
 tests/              testes com o arquivo de exemplo do banco
 ```
 
+## Publicar na Vercel (ambiente de teste)
+
+Na Vercel não há disco permanente, então o app usa dois serviços externos, ambos com plano gratuito:
+**Turso** (o banco SQLite na nuvem) e **Vercel Blob** (as fotos dos comprovantes, em modo privado).
+Localmente nada disso é necessário: sem essas variáveis o app usa `data/` como antes.
+
+1. **Banco (Turso)**
+   1. Crie uma conta em [turso.tech](https://turso.tech) e crie um banco (ex.: `aexpenses`, região São Paulo se houver).
+   2. Copie a **URL** do banco (começa com `libsql://`) e gere um **token** (*Create Token*). Guarde os dois.
+2. **Projeto na Vercel**
+   1. Em [vercel.com](https://vercel.com) → *Add New… → Project* → importe o repositório `carlosmabub/AExpenses`.
+   2. Em *Environment Variables*, adicione:
+
+      | Variável | Valor |
+      |---|---|
+      | `TURSO_DATABASE_URL` | URL do passo 1 (`libsql://...`) |
+      | `TURSO_AUTH_TOKEN` | token do passo 1 |
+      | `AEX_SESSION_SECRET` | um texto aleatório longo (gere com `openssl rand -hex 32` ou um gerador de senhas) |
+      | `AEX_CARD_SECRET` | outro texto aleatório longo. **Não troque depois**: ele identifica os cartões entre importações |
+
+   3. Clique em *Deploy*. O primeiro deploy usa a branch padrão do repositório; para publicar esta branch antes do
+      merge, em *Settings → Git* escolha `claude/stoic-euler-bxe6yo` como *Production Branch* (ou abra o deploy de
+      *Preview* que a Vercel cria para ela).
+3. **Comprovantes (Vercel Blob)**
+   1. No projeto, aba *Storage* → *Create* → **Blob** → acesso **Private** → conecte ao projeto.
+      Isso cria a variável `BLOB_READ_WRITE_TOKEN` sozinho.
+   2. Faça *Redeploy* para o app enxergar a variável nova.
+4. **Primeiro acesso**: abra o endereço do projeto, entre como **Financeiro** e importe
+   `tests/fixtures/BVK3EXEMPLOMENSAL.txt`. As tabelas e os usuários de demonstração são criados sozinhos no primeiro acesso.
+
+A cada `git push` a Vercel publica a versão nova.
+
+> **Atenção**: este ambiente é de teste, com login rápido de demonstração ligado e senhas conhecidas. Antes de usar
+> com dados reais, defina `AEX_DEMO=0`, troque as senhas e não use o arquivo real do banco num ambiente público.
+
 ## Variáveis de ambiente
 
 | Variável | Uso |
 |---|---|
-| `AEX_SESSION_SECRET` | assina o cookie de sessão (obrigatório em produção) |
-| `AEX_CARD_SECRET` | segredo da impressão digital dos cartões (obrigatório em produção, não trocar depois) |
-| `AEX_DATA_DIR` | pasta do banco e dos comprovantes (padrão `./data`) |
+| `TURSO_DATABASE_URL` / `TURSO_AUTH_TOKEN` | banco na nuvem (obrigatório na Vercel). Sem elas, usa `data/aexpenses.db` |
+| `BLOB_READ_WRITE_TOKEN` | comprovantes no Vercel Blob (criado ao conectar o Blob). Sem ele, usa `data/receipts` |
+| `AEX_SESSION_SECRET` | assina o cookie de sessão (obrigatório na Vercel) |
+| `AEX_CARD_SECRET` | segredo da impressão digital dos cartões (obrigatório na Vercel, não trocar depois) |
+| `AEX_DATA_DIR` | pasta local do banco e dos comprovantes (padrão `./data`) |
 | `AEX_DEMO` | `0` desliga o login rápido de demonstração |

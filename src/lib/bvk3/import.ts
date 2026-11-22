@@ -28,11 +28,14 @@ export interface ImportResult {
   totalCents: number;
 }
 
+/** Linhas por INSERT (o banco remoto cobra uma ida e volta por comando) */
+const INSERT_CHUNK = 50;
+
 function normalizeName(name: string): string {
   return name.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/\s+/g, " ").trim().toUpperCase();
 }
 
-export function importBvk3(db: Db, options: ImportOptions): ImportResult {
+export async function importBvk3(db: Db, options: ImportOptions): Promise<ImportResult> {
   const file = parseBvk3(options.content);
   const check = checkBvk3(file);
   const base: ImportResult = {
@@ -48,22 +51,19 @@ export function importBvk3(db: Db, options: ImportOptions): ImportResult {
   };
   if (!check.ok && !options.force) return base;
 
-  const simulated = clockMode(db) === "simulado";
-  const importTime = now(db);
-  const hours = deadlineHours(db);
-  const activeCategories = db.select().from(categories).all();
+  const simulated = (await clockMode(db)) === "simulado";
+  const importTime = await now(db);
+  const hours = await deadlineHours(db);
+  const activeCategories = await db.select().from(categories).all();
   const employeesByHolder = new Map(
-    db
-      .select()
-      .from(employees)
-      .all()
+    (await db.select().from(employees).all())
       .filter((e) => e.cardHolderName)
       .map((e) => [normalizeName(e.cardHolderName), e.id]),
   );
   const companyName = normalizeName(file.header?.companyName ?? "");
 
-  return db.transaction((tx) => {
-    const batch = tx
+  return db.transaction(async (tx) => {
+    const batch = await tx
       .insert(importBatches)
       .values({
         fileName: options.fileName,
@@ -86,14 +86,18 @@ export function importBvk3(db: Db, options: ImportOptions): ImportResult {
       .get();
 
     // Cartões: identificados pela impressão digital, nunca pelo número completo
+    const fingerprints = new Map(file.cards.map((c) => [c.cardNumber, cardFingerprint(c.cardNumber)]));
+    const existing = new Map(
+      (await tx.select().from(cards).where(inArray(cards.fingerprint, [...new Set(fingerprints.values())])).all()).map((c) => [c.fingerprint, c]),
+    );
     const cardIds = new Map<string, number>();
     for (const card of file.cards) {
-      const fingerprint = cardFingerprint(card.cardNumber);
-      let row = tx.select().from(cards).where(eq(cards.fingerprint, fingerprint)).get();
+      const fingerprint = fingerprints.get(card.cardNumber)!;
+      let row = existing.get(fingerprint);
       if (!row) {
         // O registro da conta da empresa traz o nome dela no campo do portador
         const isBillingAccount = !!companyName && normalizeName(card.holderName).startsWith(companyName);
-        row = tx
+        row = await tx
           .insert(cards)
           .values({
             fingerprint,
@@ -105,74 +109,71 @@ export function importBvk3(db: Db, options: ImportOptions): ImportResult {
           })
           .returning()
           .get();
+        existing.set(fingerprint, row);
         base.newCards++;
       }
       cardIds.set(card.cardNumber, row.id);
       if (!row.employeeId && !row.isBillingAccount) base.unlinkedCards.push(`${row.holderName} (final ${row.last4})`);
     }
 
-    const insertedIds: number[] = [];
+    const rows: (typeof transactions.$inferInsert)[] = [];
     for (const entry of file.entries) {
       const kind = entryKind(entry);
-      if (kind === "ignorado") {
-        base.ignoredEntries++;
-        continue;
-      }
       const cardId = cardIds.get(entry.cardNumber);
-      if (!cardId) {
+      if (kind === "ignorado" || !cardId) {
         base.ignoredEntries++;
         continue;
       }
       const availableAt = simulated && entry.postingDate ? dailyFileAvailability(entry.postingDate) : importTime;
-      const groupKey =
-        entry.installmentsTotal > 1
-          ? `${cardId}|${entry.purchaseDate}|${entry.description}|${entry.installmentsTotal}`
-          : `${cardId}|${entry.reference}|${kind}`;
       const suggested = kind === "compra" || kind === "saque" ? suggestCategory(activeCategories, entry.mcc) : undefined;
-
-      const inserted = tx
-        .insert(transactions)
-        .values({
-          batchId: batch.id,
-          cardId,
-          reference: entry.reference,
-          kind,
-          transactionCode: entry.transactionCode,
-          purchaseDate: entry.purchaseDate,
-          postingDate: entry.postingDate,
-          installment: entry.installment,
-          installmentsTotal: entry.installmentsTotal,
-          groupKey,
-          amountCents: entry.amountCents,
-          originalAmountMillis: entry.originalAmountMillis,
-          originalCurrency: entry.originalCurrency,
-          merchant: entry.description,
-          merchantCnpj: entry.merchantCnpj,
-          city: entry.city,
-          state: entry.state,
-          mcc: normalizeMcc(entry.mcc),
-          activityDescription: entry.activityDescription,
-          authorizationCode: entry.authorizationCode,
-          suggestedCategoryId: suggested?.id ?? null,
-          availableAt: availableAt.toISOString(),
-          dueAt: addHours(availableAt, hours).toISOString(),
-        })
-        .onConflictDoNothing()
-        .returning({ id: transactions.id, groupKey: transactions.groupKey })
-        .get();
-
-      if (inserted) {
-        base.newTransactions++;
-        insertedIds.push(inserted.id);
-      } else {
-        base.duplicateTransactions++;
-      }
+      rows.push({
+        batchId: batch.id,
+        cardId,
+        reference: entry.reference,
+        kind,
+        transactionCode: entry.transactionCode,
+        purchaseDate: entry.purchaseDate,
+        postingDate: entry.postingDate,
+        installment: entry.installment,
+        installmentsTotal: entry.installmentsTotal,
+        groupKey:
+          entry.installmentsTotal > 1
+            ? `${cardId}|${entry.purchaseDate}|${entry.description}|${entry.installmentsTotal}`
+            : `${cardId}|${entry.reference}|${kind}`,
+        amountCents: entry.amountCents,
+        originalAmountMillis: entry.originalAmountMillis,
+        originalCurrency: entry.originalCurrency,
+        merchant: entry.description,
+        merchantCnpj: entry.merchantCnpj,
+        city: entry.city,
+        state: entry.state,
+        mcc: normalizeMcc(entry.mcc),
+        activityDescription: entry.activityDescription,
+        authorizationCode: entry.authorizationCode,
+        suggestedCategoryId: suggested?.id ?? null,
+        availableAt: availableAt.toISOString(),
+        dueAt: addHours(availableAt, hours).toISOString(),
+      });
     }
 
-    // Parcelas novas de compras já classificadas herdam a classificação
-    if (insertedIds.length) inheritGroupClassifications(tx, insertedIds);
+    const insertedIds: number[] = [];
+    for (let i = 0; i < rows.length; i += INSERT_CHUNK) {
+      const inserted = await tx
+        .insert(transactions)
+        .values(rows.slice(i, i + INSERT_CHUNK))
+        .onConflictDoNothing()
+        .returning({ id: transactions.id })
+        .all();
+      insertedIds.push(...inserted.map((r) => r.id));
+    }
+    base.newTransactions = insertedIds.length;
+    base.duplicateTransactions = rows.length - insertedIds.length;
 
-    tx.update(importBatches)
+    // Parcelas novas de compras já classificadas herdam a classificação
+    if (insertedIds.length) await inheritGroupClassifications(tx, insertedIds);
+
+    await tx
+      .update(importBatches)
       .set({
         newTransactions: base.newTransactions,
         duplicateTransactions: base.duplicateTransactions,
@@ -182,37 +183,38 @@ export function importBvk3(db: Db, options: ImportOptions): ImportResult {
       .run();
 
     // No modo simulado, o relógio começa na chegada do primeiro "arquivo diário"
-    if (simulated && !simulatedNow(tx) && insertedIds.length) {
-      const first = tx
+    if (simulated && !(await simulatedNow(tx)) && insertedIds.length) {
+      const first = await tx
         .select({ at: sql<string>`min(${transactions.availableAt})` })
         .from(transactions)
         .get();
-      if (first?.at) setClock(tx, new Date(first.at));
+      if (first?.at) await setClock(tx, new Date(first.at));
     }
 
     return { ...base, imported: true, batchId: batch.id };
   });
 }
 
-function inheritGroupClassifications(db: DbLike, transactionIds: number[]): void {
-  const fresh = db
+async function inheritGroupClassifications(db: DbLike, transactionIds: number[]): Promise<void> {
+  const fresh = await db
     .select({ id: transactions.id, groupKey: transactions.groupKey })
     .from(transactions)
-    .leftJoin(classifications, eq(classifications.transactionId, transactions.id))
-    .where(and(inArray(transactions.id, transactionIds), isNull(classifications.id)))
+    .where(inArray(transactions.id, transactionIds))
     .all();
-  for (const t of fresh) {
-    const source = db
-      .select({ c: classifications })
-      .from(classifications)
-      .innerJoin(transactions, eq(transactions.id, classifications.transactionId))
-      .where(and(eq(transactions.groupKey, t.groupKey), isNull(classifications.inheritedFromId)))
-      .get();
-    if (!source) continue;
-    const { id: sourceId, transactionId: _ignored, ...rest } = source.c;
-    db.insert(classifications)
-      .values({ ...rest, transactionId: t.id, inheritedFromId: sourceId })
-      .onConflictDoNothing()
-      .run();
-  }
+  const groupKeys = [...new Set(fresh.map((t) => t.groupKey))];
+  const sources = await db
+    .select({ c: classifications, groupKey: transactions.groupKey })
+    .from(classifications)
+    .innerJoin(transactions, eq(transactions.id, classifications.transactionId))
+    .where(and(inArray(transactions.groupKey, groupKeys), isNull(classifications.inheritedFromId)))
+    .all();
+  if (!sources.length) return;
+  const byGroup = new Map(sources.map((s) => [s.groupKey, s.c]));
+  const copies = fresh.flatMap((t) => {
+    const source = byGroup.get(t.groupKey);
+    if (!source) return [];
+    const { id: sourceId, transactionId: _ignored, ...rest } = source;
+    return [{ ...rest, transactionId: t.id, inheritedFromId: sourceId }];
+  });
+  if (copies.length) await db.insert(classifications).values(copies).onConflictDoNothing().run();
 }

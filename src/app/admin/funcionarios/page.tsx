@@ -4,10 +4,10 @@ import { cards, employees } from "@/db/schema";
 import { PageTitle } from "@/components/page-title";
 import { linkCard, saveEmployee } from "../actions";
 
-export default function EmployeesPage() {
-  const db = getDb();
-  const people = db.select().from(employees).orderBy(asc(employees.role), asc(employees.name)).all();
-  const allCards = db.select().from(cards).orderBy(asc(cards.holderName)).all().filter((c) => !c.isBillingAccount);
+export default async function EmployeesPage() {
+  const db = await getDb();
+  const people = await db.select().from(employees).orderBy(asc(employees.role), asc(employees.name)).all();
+  const allCards = (await db.select().from(cards).orderBy(asc(cards.holderName)).all()).filter((c) => !c.isBillingAccount);
   const unlinked = allCards.filter((c) => !c.employeeId);
   const funcionarios = people.filter((p) => p.role === "funcionario" && p.active);
 

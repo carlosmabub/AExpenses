@@ -13,8 +13,8 @@ type Search = { funcionario?: string; status?: string; categoria?: string; de?: 
 
 export default async function TransactionsPage({ searchParams }: { searchParams: Promise<Search> }) {
   const sp = await searchParams;
-  const db = getDb();
-  const rows = listAdminExpenses(db, {
+  const db = await getDb();
+  const rows = await listAdminExpenses(db, {
     employeeId: Number(sp.funcionario) || undefined,
     status: (sp.status || undefined) as ExpenseStatus | undefined,
     categoryId: Number(sp.categoria) || undefined,
@@ -22,8 +22,8 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
     to: sp.ate || undefined,
     unlinked: sp.sem_vinculo === "1",
   });
-  const people = db.select().from(employees).where(eq(employees.role, "funcionario")).orderBy(asc(employees.name)).all();
-  const cats = listCategories(db, false);
+  const people = await db.select().from(employees).where(eq(employees.role, "funcionario")).orderBy(asc(employees.name)).all();
+  const cats = await listCategories(db, false);
   const total = rows.filter((r) => r.tx.kind !== "estorno").reduce((s, r) => s + r.tx.amountCents, 0);
   const exportQuery = new URLSearchParams(Object.entries(sp).filter(([, v]) => v) as [string, string][]).toString();
 

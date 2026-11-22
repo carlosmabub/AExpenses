@@ -1,7 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  serverExternalPackages: ["better-sqlite3"],
+  // As migrações SQL são lidas em tempo de execução; inclui a pasta no pacote da Vercel
+  outputFileTracingIncludes: { "/**": ["./drizzle/**"] },
   experimental: {
     serverActions: { bodySizeLimit: "10mb" },
   },

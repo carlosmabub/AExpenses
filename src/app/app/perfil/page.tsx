@@ -6,7 +6,7 @@ import { logout } from "@/app/login/actions";
 
 export default async function ProfilePage() {
   const user = await requireUser();
-  const myCards = getDb().select().from(cards).where(eq(cards.employeeId, user.id)).all();
+  const myCards = await (await getDb()).select().from(cards).where(eq(cards.employeeId, user.id)).all();
   return (
     <>
       <header className="bg-white px-4 pb-4 pt-5 shadow-sm">

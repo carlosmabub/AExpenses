@@ -3,8 +3,8 @@ import { listCategories } from "@/lib/expenses";
 import { PageTitle } from "@/components/page-title";
 import { saveCategory } from "../actions";
 
-export default function CategoriesPage() {
-  const cats = listCategories(getDb(), false);
+export default async function CategoriesPage() {
+  const cats = await listCategories(await getDb(), false);
   return (
     <>
       <PageTitle title="Categorias" subtitle="Opções que o funcionário vê ao classificar. Os códigos MCC fazem a sugestão automática pelo ramo do estabelecimento." />

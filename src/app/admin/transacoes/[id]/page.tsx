@@ -8,7 +8,7 @@ import { classifiedLate } from "@/lib/status";
 import { StatusBadge } from "@/components/status-badge";
 
 export default async function AdminExpensePage({ params }: { params: Promise<{ id: string }> }) {
-  const r = getExpense(getDb(), Number((await params).id));
+  const r = await getExpense(await getDb(), Number((await params).id));
   if (!r) notFound();
   const { tx, classification: c } = r;
   const fields: [string, string][] = [

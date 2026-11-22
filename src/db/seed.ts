@@ -28,22 +28,25 @@ function emailFor(name: string): string {
   return `${first}.${last}@empresa.com.br`;
 }
 
-export function seedCategories(db: Db): void {
-  DEFAULT_CATEGORIES.forEach((c, i) => {
-    db.insert(categories).values({ ...c, sortOrder: i }).onConflictDoNothing().run();
-  });
+export async function seedCategories(db: Db): Promise<void> {
+  await db
+    .insert(categories)
+    .values(DEFAULT_CATEGORIES.map((c, i) => ({ ...c, sortOrder: i })))
+    .onConflictDoNothing()
+    .run();
 }
 
-export function seedIfEmpty(db: Db): void {
-  if (db.select().from(employees).limit(1).all().length > 0) return;
-  seedCategories(db);
-  db.insert(employees)
+export async function seedIfEmpty(db: Db): Promise<void> {
+  if ((await db.select().from(employees).limit(1).all()).length > 0) return;
+  await seedCategories(db);
+  await db.insert(employees)
     .values({ name: DEMO_ADMIN.name, email: DEMO_ADMIN.email, passwordHash: hashPassword(DEMO_ADMIN.password), role: "admin" })
+    .onConflictDoNothing()
     .run();
   const employeeHash = hashPassword(DEMO_EMPLOYEE_PASSWORD);
-  for (const e of DEMO_EMPLOYEES) {
-    db.insert(employees)
-      .values({ name: e.name, email: emailFor(e.name), passwordHash: employeeHash, costCenter: e.costCenter, cardHolderName: e.holder })
-      .run();
-  }
+  await db
+    .insert(employees)
+    .values(DEMO_EMPLOYEES.map((e) => ({ name: e.name, email: emailFor(e.name), passwordHash: employeeHash, costCenter: e.costCenter, cardHolderName: e.holder })))
+    .onConflictDoNothing()
+    .run();
 }

@@ -7,10 +7,10 @@ import { PageTitle } from "@/components/page-title";
 import { moveClock, resetPilot, setClockMode, setDeadline } from "../actions";
 import { ImportForm } from "./import-form";
 
-export default function ImportPage() {
-  const db = getDb();
-  const simulated = clockMode(db) === "simulado";
-  const batches = db.select().from(importBatches).orderBy(desc(importBatches.id)).all();
+export default async function ImportPage() {
+  const db = await getDb();
+  const simulated = (await clockMode(db)) === "simulado";
+  const batches = await db.select().from(importBatches).orderBy(desc(importBatches.id)).all();
 
   return (
     <>
@@ -51,7 +51,7 @@ export default function ImportPage() {
             </p>
             {simulated && (
               <>
-                <p className="mt-3 rounded-lg bg-brand-50 p-3 text-sm text-brand-900">📅 {longDay(now(db))}</p>
+                <p className="mt-3 rounded-lg bg-brand-50 p-3 text-sm text-brand-900">📅 {longDay(await now(db))}</p>
                 <div className="mt-3 grid grid-cols-4 gap-2">
                   {[1, 2, 7, 30].map((d) => (
                     <form key={d} action={moveClock}>
@@ -72,7 +72,7 @@ export default function ImportPage() {
             <h2 className="font-semibold">Prazo para classificar</h2>
             <p className="text-sm text-slate-600">Depois desse prazo a despesa vira “ignorada” e aparece para o financeiro. Vale para as próximas importações.</p>
             <div className="flex items-center gap-2">
-              <input className="input w-24" type="number" name="hours" min={1} max={720} defaultValue={deadlineHours(db)} />
+              <input className="input w-24" type="number" name="hours" min={1} max={720} defaultValue={await deadlineHours(db)} />
               <span className="text-sm text-slate-600">horas</span>
               <button className="btn-ghost ml-auto">Salvar</button>
             </div>

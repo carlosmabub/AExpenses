@@ -11,9 +11,9 @@ import { ClassifyForm } from "./classify-form";
 export default async function ExpensePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const user = await requireUser();
-  const db = getDb();
-  const at = now(db);
-  const expense = getExpense(db, Number(id));
+  const db = await getDb();
+  const at = await now(db);
+  const expense = await getExpense(db, Number(id));
   if (!expense || expense.card.employeeId !== user.id || new Date(expense.tx.availableAt) > at) notFound();
   const { tx, classification } = expense;
   const parcel = installmentLabel(tx.installment, tx.installmentsTotal);
@@ -53,7 +53,7 @@ export default async function ExpensePage({ params }: { params: Promise<{ id: st
             )}
             <ClassifyForm
               transactionId={tx.id}
-              categories={listCategories(db)}
+              categories={await listCategories(db)}
               defaultCategoryId={classification?.categoryId ?? expense.suggestedCategoryId}
               defaultDescription={classification?.description ?? ""}
               defaultCostCenter={classification?.costCenter ?? user.costCenter}

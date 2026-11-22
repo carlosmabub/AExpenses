@@ -9,16 +9,16 @@ import { saveReceipt } from "@/lib/receipts";
 
 export async function classify(_: string | null, form: FormData): Promise<string | null> {
   const user = await requireUser();
-  const db = getDb();
+  const db = await getDb();
   const transactionId = Number(form.get("transactionId"));
-  const expense = getExpense(db, transactionId);
+  const expense = await getExpense(db, transactionId);
   if (!expense || expense.card.employeeId !== user.id) return "Despesa não encontrada.";
 
   try {
     let receipt: { path: string; mime: string } | undefined;
     const file = form.get("receipt");
     if (file instanceof File && file.size > 0) receipt = await saveReceipt(file, transactionId);
-    classifyExpense(db, {
+    await classifyExpense(db, {
       transactionId,
       employeeId: user.id,
       categoryId: Number(form.get("categoryId")),

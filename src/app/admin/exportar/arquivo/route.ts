@@ -8,7 +8,7 @@ export async function GET(request: Request) {
   const user = await currentUser();
   if (user?.role !== "admin") return new Response("Não autorizado", { status: 401 });
   const sp = new URL(request.url).searchParams;
-  const rows = listAdminExpenses(getDb(), {
+  const rows = await listAdminExpenses(await getDb(), {
     employeeId: Number(sp.get("funcionario")) || undefined,
     status: (sp.get("status") || undefined) as ExpenseStatus | undefined,
     categoryId: Number(sp.get("categoria")) || undefined,

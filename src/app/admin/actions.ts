@@ -22,40 +22,40 @@ export async function importFile(_: ImportState, form: FormData): Promise<Import
   if (!(file instanceof File) || file.size === 0) return { error: "Escolha o arquivo BVK3 enviado pelo banco." };
   if (file.size > 20 * 1024 * 1024) return { error: "Arquivo muito grande (máx. 20 MB)." };
   const content = decodeBvk3(new Uint8Array(await file.arrayBuffer()));
-  const result = importBvk3(getDb(), { fileName: file.name, content, importedBy: admin.id, force: form.get("force") === "1" });
+  const result = await importBvk3(await getDb(), { fileName: file.name, content, importedBy: admin.id, force: form.get("force") === "1" });
   refresh();
   return { result, fileName: file.name };
 }
 
 export async function moveClock(form: FormData): Promise<void> {
   await requireAdmin();
-  advanceClock(getDb(), Number(form.get("days") ?? 1));
+  await advanceClock(await getDb(), Number(form.get("days") ?? 1));
   refresh();
 }
 
 export async function setClockMode(form: FormData): Promise<void> {
   await requireAdmin();
-  setSetting(getDb(), "clock_mode", form.get("mode") === "real" ? "real" : "simulado");
+  await setSetting(await getDb(), "clock_mode", form.get("mode") === "real" ? "real" : "simulado");
   refresh();
 }
 
 export async function setDeadline(form: FormData): Promise<void> {
   await requireAdmin();
   const hours = Number(form.get("hours"));
-  if (Number.isFinite(hours) && hours > 0 && hours <= 24 * 30) setSetting(getDb(), "deadline_hours", String(Math.round(hours)));
+  if (Number.isFinite(hours) && hours > 0 && hours <= 24 * 30) await setSetting(await getDb(), "deadline_hours", String(Math.round(hours)));
   refresh();
 }
 
 /** Apaga importações e despesas (mantém funcionários e categorias) para recomeçar a demonstração. */
 export async function resetPilot(): Promise<void> {
   await requireAdmin();
-  const db = getDb();
-  db.transaction((tx) => {
-    tx.delete(classifications).run();
-    tx.delete(transactions).run();
-    tx.delete(importBatches).run();
-    tx.delete(cards).run();
-    tx.delete(settings).where(inArray(settings.key, ["sim_now"])).run();
+  const db = await getDb();
+  await db.transaction(async (tx) => {
+    await tx.delete(classifications).run();
+    await tx.delete(transactions).run();
+    await tx.delete(importBatches).run();
+    await tx.delete(cards).run();
+    await tx.delete(settings).where(inArray(settings.key, ["sim_now"])).run();
   });
   refresh();
 }
@@ -63,13 +63,13 @@ export async function resetPilot(): Promise<void> {
 export async function linkCard(form: FormData): Promise<void> {
   await requireAdmin();
   const employeeId = Number(form.get("employeeId")) || null;
-  getDb().update(cards).set({ employeeId }).where(eq(cards.id, Number(form.get("cardId")))).run();
+  await (await getDb()).update(cards).set({ employeeId }).where(eq(cards.id, Number(form.get("cardId")))).run();
   refresh();
 }
 
 export async function saveEmployee(form: FormData): Promise<void> {
   await requireAdmin();
-  const db = getDb();
+  const db = await getDb();
   const id = Number(form.get("id")) || null;
   const values = {
     name: String(form.get("name") ?? "").trim(),
@@ -82,16 +82,16 @@ export async function saveEmployee(form: FormData): Promise<void> {
   if (!values.name || !values.email) return;
   const password = String(form.get("password") ?? "");
   if (id) {
-    db.update(employees).set({ ...values, ...(password ? { passwordHash: hashPassword(password) } : {}) }).where(eq(employees.id, id)).run();
+    await db.update(employees).set({ ...values, ...(password ? { passwordHash: hashPassword(password) } : {}) }).where(eq(employees.id, id)).run();
   } else {
-    db.insert(employees).values({ ...values, passwordHash: hashPassword(password || "123456") }).onConflictDoNothing().run();
+    await db.insert(employees).values({ ...values, passwordHash: hashPassword(password || "123456") }).onConflictDoNothing().run();
   }
   refresh();
 }
 
 export async function saveCategory(form: FormData): Promise<void> {
   await requireAdmin();
-  const db = getDb();
+  const db = await getDb();
   const id = Number(form.get("id")) || null;
   const values = {
     name: String(form.get("name") ?? "").trim(),
@@ -100,7 +100,7 @@ export async function saveCategory(form: FormData): Promise<void> {
     active: form.get("active") !== "0",
   };
   if (!values.name) return;
-  if (id) db.update(categories).set(values).where(eq(categories.id, id)).run();
-  else db.insert(categories).values({ ...values, sortOrder: 100 }).onConflictDoNothing().run();
+  if (id) await db.update(categories).set(values).where(eq(categories.id, id)).run();
+  else await db.insert(categories).values({ ...values, sortOrder: 100 }).onConflictDoNothing().run();
   refresh();
 }

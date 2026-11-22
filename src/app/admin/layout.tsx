@@ -12,9 +12,9 @@ export const dynamic = "force-dynamic";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const user = await requireAdmin();
-  const db = getDb();
-  const unlinked = db.select().from(cards).where(and(isNull(cards.employeeId), eq(cards.isBillingAccount, false))).all().length;
-  const simulated = clockMode(db) === "simulado";
+  const db = await getDb();
+  const unlinked = (await db.select().from(cards).where(and(isNull(cards.employeeId), eq(cards.isBillingAccount, false))).all()).length;
+  const simulated = (await clockMode(db)) === "simulado";
 
   return (
     <div className="flex min-h-dvh">
@@ -31,7 +31,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           {simulated && (
             <div className="rounded-xl bg-white/10 p-3 text-xs">
               <p className="font-semibold text-white">Relógio do piloto</p>
-              <p className="mt-0.5 text-brand-100">{longDay(now(db))}</p>
+              <p className="mt-0.5 text-brand-100">{longDay(await now(db))}</p>
               <div className="mt-2 grid grid-cols-3 gap-1">
                 {[1, 2, 7].map((d) => (
                   <form key={d} action={moveClock}>

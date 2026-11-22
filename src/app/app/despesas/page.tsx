@@ -16,10 +16,10 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Pro
   const { aba } = await searchParams;
   const tab = TABS.find((t) => t.key === aba) ?? TABS[0];
   const user = await requireUser();
-  const db = getDb();
-  const at = now(db);
-  const icons = new Map(listCategories(db, false).map((c) => [c.id, c.icon]));
-  const all = listEmployeeExpenses(db, user.id);
+  const db = await getDb();
+  const at = await now(db);
+  const icons = new Map((await listCategories(db, false)).map((c) => [c.id, c.icon]));
+  const all = await listEmployeeExpenses(db, user.id);
   const items = all.filter((e) => tab.statuses.includes(e.status));
 
   return (

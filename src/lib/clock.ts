@@ -13,43 +13,43 @@ export const DEFAULT_DEADLINE_HOURS = 48;
 /** Horário (Brasília) em que o arquivo diário fica disponível no modo simulado */
 export const DAILY_FILE_HOUR_UTC = 11; // 08:00 em Brasília (UTC-3)
 
-function getSetting(db: Db, key: string): string | undefined {
-  return db.select().from(settings).where(eq(settings.key, key)).get()?.value;
+async function getSetting(db: Db, key: string): Promise<string | undefined> {
+  return (await db.select().from(settings).where(eq(settings.key, key)).get())?.value;
 }
 
-export function setSetting(db: Db, key: string, value: string): void {
-  db.insert(settings).values({ key, value }).onConflictDoUpdate({ target: settings.key, set: { value } }).run();
+export async function setSetting(db: Db, key: string, value: string): Promise<void> {
+  await db.insert(settings).values({ key, value }).onConflictDoUpdate({ target: settings.key, set: { value } }).run();
 }
 
-export function clockMode(db: Db): ClockMode {
-  return getSetting(db, "clock_mode") === "real" ? "real" : "simulado";
+export async function clockMode(db: Db): Promise<ClockMode> {
+  return (await getSetting(db, "clock_mode")) === "real" ? "real" : "simulado";
 }
 
-export function simulatedNow(db: Db): string | undefined {
+export function simulatedNow(db: Db): Promise<string | undefined> {
   return getSetting(db, "sim_now");
 }
 
-export function now(db: Db): Date {
-  if (clockMode(db) === "simulado") {
-    const sim = simulatedNow(db);
+export async function now(db: Db): Promise<Date> {
+  if ((await clockMode(db)) === "simulado") {
+    const sim = await simulatedNow(db);
     if (sim) return new Date(sim);
   }
   return new Date();
 }
 
-export function deadlineHours(db: Db): number {
-  const value = Number.parseInt(getSetting(db, "deadline_hours") ?? "", 10);
+export async function deadlineHours(db: Db): Promise<number> {
+  const value = Number.parseInt((await getSetting(db, "deadline_hours")) ?? "", 10);
   return Number.isFinite(value) && value > 0 ? value : DEFAULT_DEADLINE_HOURS;
 }
 
-export function advanceClock(db: Db, days: number): Date {
-  const next = new Date(now(db).getTime() + days * 24 * 3600 * 1000);
-  setSetting(db, "sim_now", next.toISOString());
+export async function advanceClock(db: Db, days: number): Promise<Date> {
+  const next = new Date((await now(db)).getTime() + days * 24 * 3600 * 1000);
+  await setSetting(db, "sim_now", next.toISOString());
   return next;
 }
 
-export function setClock(db: Db, date: Date): void {
-  setSetting(db, "sim_now", date.toISOString());
+export async function setClock(db: Db, date: Date): Promise<void> {
+  await setSetting(db, "sim_now", date.toISOString());
 }
 
 /** Dia seguinte à data de postagem, às 08:00 de Brasília: quando o arquivo D+1 chegaria. */

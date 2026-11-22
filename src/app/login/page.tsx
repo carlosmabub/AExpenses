@@ -7,9 +7,9 @@ import { LoginForm } from "./login-form";
 
 export const dynamic = "force-dynamic";
 
-export default function LoginPage() {
+export default async function LoginPage() {
   const demoUsers = demoMode()
-    ? getDb().select().from(employees).orderBy(asc(employees.role), asc(employees.name)).all().filter((e) => e.active)
+    ? (await (await getDb()).select().from(employees).orderBy(asc(employees.role), asc(employees.name)).all()).filter((e) => e.active)
     : [];
   return (
     <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center gap-6 px-4 py-10">

@@ -8,10 +8,10 @@ import { ExpenseCard } from "@/components/expense-card";
 
 export default async function EmployeeHome() {
   const user = await requireUser();
-  const db = getDb();
-  const at = now(db);
-  const icons = new Map(listCategories(db, false).map((c) => [c.id, c.icon]));
-  const expenses = listEmployeeExpenses(db, user.id);
+  const db = await getDb();
+  const at = await now(db);
+  const icons = new Map((await listCategories(db, false)).map((c) => [c.id, c.icon]));
+  const expenses = await listEmployeeExpenses(db, user.id);
   const pending = expenses.filter((e) => e.status === "pendente").sort((a, b) => a.tx.dueAt.localeCompare(b.tx.dueAt));
   const ignored = expenses.filter((e) => e.status === "ignorada");
   const monthPrefix = at.toISOString().slice(0, 7);

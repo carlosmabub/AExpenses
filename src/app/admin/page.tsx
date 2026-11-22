@@ -28,9 +28,9 @@ function Kpi({ label, value, hint, tone = "slate", href }: { label: string; valu
   return href ? <Link href={href}>{body}</Link> : body;
 }
 
-export default function Dashboard() {
-  const db = getDb();
-  const rows = listAdminExpenses(db).filter((r) => r.tx.kind !== "estorno");
+export default async function Dashboard() {
+  const db = await getDb();
+  const rows = (await listAdminExpenses(db)).filter((r) => r.tx.kind !== "estorno");
   const by = (s: string) => rows.filter((r) => r.status === s);
   const classified = by("classificada");
   const pending = by("pendente");
@@ -55,11 +55,11 @@ export default function Dashboard() {
   }
   const categoriesRanked = [...perCategory.entries()].sort((a, b) => b[1].cents - a[1].cents);
   const maxCategory = categoriesRanked[0]?.[1].cents ?? 1;
-  const batches = db.select().from(importBatches).orderBy(desc(importBatches.id)).limit(5).all();
+  const batches = await db.select().from(importBatches).orderBy(desc(importBatches.id)).limit(5).all();
 
   return (
     <>
-      <PageTitle title="Dashboard" subtitle={`Situação em ${dateTime(now(db))}`} />
+      <PageTitle title="Dashboard" subtitle={`Situação em ${dateTime(await now(db))}`} />
 
       {rows.length === 0 ? (
         <div className="card p-10 text-center">

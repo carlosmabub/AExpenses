@@ -1,36 +1,51 @@
-import Database from "better-sqlite3";
-import { drizzle, type BetterSQLite3Database } from "drizzle-orm/better-sqlite3";
-import { migrate } from "drizzle-orm/better-sqlite3/migrator";
+import { createClient, type ResultSet } from "@libsql/client";
+import { drizzle, type LibSQLDatabase } from "drizzle-orm/libsql";
+import { migrate } from "drizzle-orm/libsql/migrator";
 import type { BaseSQLiteDatabase } from "drizzle-orm/sqlite-core";
 import fs from "node:fs";
 import path from "node:path";
 import * as schema from "./schema";
 import { seedIfEmpty } from "./seed";
 
-export type Db = BetterSQLite3Database<typeof schema>;
+export type Db = LibSQLDatabase<typeof schema>;
 /** Banco ou transação aberta: as funções de domínio aceitam os dois. */
-export type DbLike = BaseSQLiteDatabase<"sync", Database.RunResult, typeof schema>;
-
-export function createDb(file: string): Db {
-  if (file !== ":memory:") fs.mkdirSync(path.dirname(file), { recursive: true });
-  const sqlite = new Database(file);
-  sqlite.pragma("journal_mode = WAL");
-  sqlite.pragma("foreign_keys = ON");
-  const db = drizzle(sqlite, { schema });
-  migrate(db, { migrationsFolder: path.join(process.cwd(), "drizzle") });
-  return db;
-}
+export type DbLike = BaseSQLiteDatabase<"async", ResultSet, typeof schema>;
 
 export const DATA_DIR = process.env.AEX_DATA_DIR || path.join(process.cwd(), "data");
 
-const globalForDb = globalThis as unknown as { __aexDb?: Db };
+/**
+ * Abre o banco e aplica as migrações.
+ * - Produção (Vercel): Turso, via TURSO_DATABASE_URL + TURSO_AUTH_TOKEN.
+ * - Local: arquivo SQLite em data/ (file:...), ou ":memory:" nos testes.
+ */
+export async function createDb(url: string, authToken?: string): Promise<Db> {
+  if (url.startsWith("file:")) fs.mkdirSync(path.dirname(url.slice("file:".length)), { recursive: true });
+  const client = createClient({ url, authToken });
+  if (!url.startsWith("libsql:") && !url.startsWith("https:")) await client.execute("PRAGMA foreign_keys = ON");
+  const db = drizzle(client, { schema });
+  await migrate(db, { migrationsFolder: path.join(process.cwd(), "drizzle") });
+  return db;
+}
 
-/** Banco da aplicação (singleton; sobrevive ao hot reload do Next em dev). */
-export function getDb(): Db {
+function databaseUrl(): string {
+  if (process.env.TURSO_DATABASE_URL) return process.env.TURSO_DATABASE_URL;
+  if (process.env.VERCEL) throw new Error("Configure TURSO_DATABASE_URL e TURSO_AUTH_TOKEN no projeto da Vercel.");
+  return `file:${path.join(DATA_DIR, "aexpenses.db")}`;
+}
+
+const globalForDb = globalThis as unknown as { __aexDb?: Promise<Db> };
+
+/** Banco da aplicação: aberto, migrado e com seed uma vez por instância (sobrevive ao hot reload em dev). */
+export function getDb(): Promise<Db> {
   if (!globalForDb.__aexDb) {
-    const db = createDb(path.join(DATA_DIR, "aexpenses.db"));
-    seedIfEmpty(db);
-    globalForDb.__aexDb = db;
+    globalForDb.__aexDb = (async () => {
+      const db = await createDb(databaseUrl(), process.env.TURSO_AUTH_TOKEN);
+      await seedIfEmpty(db);
+      return db;
+    })().catch((error) => {
+      globalForDb.__aexDb = undefined;
+      throw error;
+    });
   }
   return globalForDb.__aexDb;
 }

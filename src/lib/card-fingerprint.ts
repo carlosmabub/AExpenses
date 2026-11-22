@@ -1,4 +1,5 @@
 import { createHmac } from "node:crypto";
+import { serverSecret } from "./secrets";
 
 /**
  * O número completo do cartão nunca é gravado. Guardamos só uma impressão digital
@@ -6,7 +7,7 @@ import { createHmac } from "node:crypto";
  * e os 4 últimos dígitos para exibição.
  */
 function secret(): string {
-  return process.env.AEX_CARD_SECRET || "aexpenses-dev-secret-troque-em-producao";
+  return serverSecret("AEX_CARD_SECRET", "aexpenses-dev-secret-troque-em-producao");
 }
 
 export function cardFingerprint(cardNumber: string): string {
