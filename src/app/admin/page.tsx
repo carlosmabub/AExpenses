@@ -5,27 +5,20 @@ import { importBatches } from "@/db/schema";
 import { now } from "@/lib/clock";
 import { listAdminExpenses, type ExpenseRow } from "@/lib/expenses";
 import { dateTime, money } from "@/lib/format";
-import { PageTitle } from "@/components/page-title";
+import { CategoryIcon } from "@/components/category-icon";
 
 function sum(rows: ExpenseRow[]) {
   return rows.reduce((s, r) => s + r.tx.amountCents, 0);
 }
 
-function Kpi({ label, value, hint, tone = "slate", href }: { label: string; value: string; hint?: string; tone?: string; href?: string }) {
-  const tones: Record<string, string> = {
-    slate: "text-slate-900",
-    green: "text-emerald-600",
-    amber: "text-amber-600",
-    red: "text-red-600",
-  };
-  const body = (
-    <div className="card h-full p-5">
-      <p className="text-sm text-slate-500">{label}</p>
-      <p className={`mt-1 text-3xl font-bold ${tones[tone]}`}>{value}</p>
-      {hint && <p className="mt-1 text-xs text-slate-500">{hint}</p>}
-    </div>
+function Figure({ label, value, hint, href, accent }: { label: string; value: string; hint: string; href: string; accent?: boolean }) {
+  return (
+    <Link href={href} className="group block py-5 pr-6 transition-colors duration-100 hover:bg-paper-2/60 sm:border-l sm:border-rule sm:pl-6 sm:first:border-l-0 sm:first:pl-0">
+      <span className="label">{label}</span>
+      <span className={`figure block text-5xl ${accent ? "text-accent" : "text-ink"}`}>{value}</span>
+      <span className="mt-2 block text-sm text-muted">{hint}</span>
+    </Link>
   );
-  return href ? <Link href={href}>{body}</Link> : body;
 }
 
 export default async function Dashboard() {
@@ -40,16 +33,18 @@ export default async function Dashboard() {
   const perEmployee = new Map<string, { id?: number; name: string; rows: ExpenseRow[] }>();
   for (const r of rows) {
     const key = r.employee ? String(r.employee.id) : `card-${r.card.id}`;
-    const name = r.employee?.name ?? `${r.card.holderName} (não vinculado)`;
+    const name = r.employee?.name ?? `${r.card.holderName} (cartão não vinculado)`;
     if (!perEmployee.has(key)) perEmployee.set(key, { id: r.employee?.id, name, rows: [] });
     perEmployee.get(key)!.rows.push(r);
   }
-  const employeesRanked = [...perEmployee.values()].sort((a, b) => sum(b.rows) - sum(a.rows));
+  const employeesRanked = [...perEmployee.values()].sort(
+    (a, b) => b.rows.filter((r) => r.status === "ignorada").length - a.rows.filter((r) => r.status === "ignorada").length || sum(b.rows) - sum(a.rows),
+  );
 
   const perCategory = new Map<string, { icon: string; cents: number }>();
   for (const r of classified) {
     const name = r.category?.name ?? "Outros";
-    const cur = perCategory.get(name) ?? { icon: r.category?.icon ?? "🧾", cents: 0 };
+    const cur = perCategory.get(name) ?? { icon: r.category?.icon ?? "receipt", cents: 0 };
     cur.cents += r.tx.amountCents;
     perCategory.set(name, cur);
   }
@@ -57,88 +52,99 @@ export default async function Dashboard() {
   const maxCategory = categoriesRanked[0]?.[1].cents ?? 1;
   const batches = await db.select().from(importBatches).orderBy(desc(importBatches.id)).limit(5).all();
 
+  if (rows.length === 0) {
+    return (
+      <div className="max-w-xl">
+        <h1 className="head text-3xl text-ink">nenhuma despesa ainda</h1>
+        <p className="mt-3 text-ink-2">Importe o arquivo de cartões do Bradesco para as compras chegarem aos funcionários.</p>
+        <Link href="/admin/importar" className="btn-primary mt-6">importar arquivo</Link>
+      </div>
+    );
+  }
+
   return (
     <>
-      <PageTitle title="Dashboard" subtitle={`Situação em ${dateTime(await now(db))}`} />
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <h1 className="head text-3xl text-ink">prestação de contas</h1>
+        <p className="text-sm text-muted">situação em {dateTime(await now(db))}</p>
+      </div>
 
-      {rows.length === 0 ? (
-        <div className="card p-10 text-center">
-          <p className="text-4xl">📥</p>
-          <p className="mt-2 font-semibold">Nenhuma despesa ainda</p>
-          <p className="text-sm text-slate-500">Importe o arquivo de cartões do Bradesco para começar.</p>
-          <Link href="/admin/importar" className="btn-primary mt-4">Importar arquivo</Link>
-        </div>
-      ) : (
-        <div className="space-y-6">
-          <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
-            <Kpi label="Total gasto" value={money(sum(rows))} hint={`${rows.length} lançamentos recebidos`} />
-            <Kpi label="Classificadas" value={`${pct}%`} hint={`${classified.length} despesa${classified.length === 1 ? "" : "s"} · ${money(sum(classified))}`} tone="green" href="/admin/transacoes?status=classificada" />
-            <Kpi label="Pendentes (no prazo)" value={String(pending.length)} hint={money(sum(pending))} tone="amber" href="/admin/transacoes?status=pendente" />
-            <Kpi label="Ignoradas (prazo vencido)" value={String(ignored.length)} hint={`${money(sum(ignored))} sem justificativa`} tone="red" href="/admin/transacoes?status=ignorada" />
+      <div className="mt-6 grid border-y border-rule sm:grid-cols-2 xl:grid-cols-4">
+        <Figure label="total recebido do banco" value={money(sum(rows))} hint={`${rows.length} lançamentos`} href="/admin/transacoes" />
+        <Figure label="classificadas" value={`${pct}%`} hint={`${classified.length} despesa${classified.length === 1 ? "" : "s"}, ${money(sum(classified))}`} href="/admin/transacoes?status=classificada" />
+        <Figure label="no prazo, aguardando" value={String(pending.length)} hint={money(sum(pending))} href="/admin/transacoes?status=pendente" />
+        <Figure label="ignoradas, prazo vencido" value={String(ignored.length)} hint={`${money(sum(ignored))} sem justificativa`} href="/admin/transacoes?status=ignorada" accent />
+      </div>
+
+      <div className="mt-12 grid gap-12 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+        <section aria-labelledby="por-funcionario" className="min-w-0">
+          <h2 id="por-funcionario" className="head text-xl text-ink">por funcionário</h2>
+          <p className="mt-1 text-sm text-muted">Quem tem mais despesas ignoradas aparece primeiro.</p>
+          <div className="mt-4 overflow-x-auto">
+            <table className="data-table min-w-[560px]">
+              <thead>
+                <tr>
+                  <th scope="col">funcionário</th>
+                  <th scope="col" className="text-right">total</th>
+                  <th scope="col" className="text-right">classificadas</th>
+                  <th scope="col" className="text-right">aguardando</th>
+                  <th scope="col" className="text-right">ignoradas</th>
+                </tr>
+              </thead>
+              <tbody>
+                {employeesRanked.map((e) => {
+                  const count = (s: string) => e.rows.filter((r) => r.status === s).length;
+                  const link = e.id ? `/admin/transacoes?funcionario=${e.id}` : "/admin/funcionarios";
+                  return (
+                    <tr key={e.name}>
+                      <td><Link href={link} className="link text-ink">{e.name}</Link></td>
+                      <td className="text-right tabular-nums">{money(sum(e.rows))}</td>
+                      <td className="text-right tabular-nums">{count("classificada")}</td>
+                      <td className="text-right tabular-nums">{count("pendente")}</td>
+                      <td className={`text-right tabular-nums ${count("ignorada") ? "font-medium text-error" : "text-muted"}`}>{count("ignorada")}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
+        </section>
 
-          <div className="grid gap-6 xl:grid-cols-3">
-            <div className="card overflow-hidden xl:col-span-2">
-              <h2 className="border-b border-slate-100 px-5 py-3 font-semibold">Por funcionário</h2>
-              <table className="w-full text-sm">
-                <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500">
-                  <tr>
-                    <th className="px-5 py-2">Funcionário</th>
-                    <th className="px-3 py-2 text-right">Total</th>
-                    <th className="px-3 py-2 text-center">Classificadas</th>
-                    <th className="px-3 py-2 text-center">Pendentes</th>
-                    <th className="px-3 py-2 text-center">Ignoradas</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {employeesRanked.map((e) => {
-                    const count = (s: string) => e.rows.filter((r) => r.status === s).length;
-                    const link = e.id ? `/admin/transacoes?funcionario=${e.id}` : "/admin/funcionarios";
-                    return (
-                      <tr key={e.name} className="hover:bg-slate-50">
-                        <td className="px-5 py-2.5"><Link href={link} className="font-medium text-slate-800 hover:text-brand-600">{e.name}</Link></td>
-                        <td className="px-3 py-2.5 text-right font-medium">{money(sum(e.rows))}</td>
-                        <td className="px-3 py-2.5 text-center text-emerald-600">{count("classificada")}</td>
-                        <td className="px-3 py-2.5 text-center text-amber-600">{count("pendente")}</td>
-                        <td className="px-3 py-2.5 text-center font-semibold text-red-600">{count("ignorada") || "—"}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+        <div className="min-w-0 space-y-12">
+          <section aria-labelledby="por-categoria">
+            <h2 id="por-categoria" className="head text-xl text-ink">gasto por categoria</h2>
+            {categoriesRanked.length === 0 ? (
+              <p className="mt-3 text-sm text-muted">Aparece quando as primeiras despesas forem classificadas.</p>
+            ) : (
+              <ul className="mt-4 space-y-4" aria-label="Gasto classificado por categoria">
+                {categoriesRanked.map(([name, c]) => (
+                  <li key={name}>
+                    <div className="flex items-center justify-between gap-3 text-sm">
+                      <span className="flex items-center gap-2 text-ink"><CategoryIcon name={c.icon} size={16} className="text-muted" />{name}</span>
+                      <span className="tabular-nums">{money(c.cents)}</span>
+                    </div>
+                    <div className="mt-2 h-1.5 rounded-pill bg-accent-soft">
+                      <div className="h-1.5 origin-left rounded-pill bg-accent" style={{ transform: `scaleX(${c.cents / maxCategory})` }} />
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
 
-            <div className="space-y-6">
-              <div className="card p-5">
-                <h2 className="mb-3 font-semibold">Gasto por categoria</h2>
-                {categoriesRanked.length === 0 ? (
-                  <p className="text-sm text-slate-500">Nenhuma despesa classificada ainda.</p>
-                ) : (
-                  <ul className="space-y-3">
-                    {categoriesRanked.map(([name, c]) => (
-                      <li key={name}>
-                        <div className="flex justify-between text-sm"><span>{c.icon} {name}</span><span className="font-medium">{money(c.cents)}</span></div>
-                        <div className="mt-1 h-2 rounded-full bg-slate-100"><div className="h-2 rounded-full bg-brand-500" style={{ width: `${(c.cents / maxCategory) * 100}%` }} /></div>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-              <div className="card p-5">
-                <h2 className="mb-3 font-semibold">Últimas importações</h2>
-                <ul className="space-y-2 text-sm">
-                  {batches.map((b) => (
-                    <li key={b.id} className="flex items-center justify-between gap-2">
-                      <span className="truncate">{b.checkOk ? "✅" : "⚠️"} {b.fileName}</span>
-                      <span className="shrink-0 text-xs text-slate-500">{b.newTransactions} novas</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-          </div>
+          <section aria-labelledby="importacoes">
+            <h2 id="importacoes" className="head text-xl text-ink">últimas importações</h2>
+            <ul className="mt-3 border-t border-rule text-sm">
+              {batches.map((b) => (
+                <li key={b.id} className="flex items-center justify-between gap-3 border-b border-rule py-3">
+                  <span className="truncate text-ink">{b.fileName}</span>
+                  <span className="shrink-0 text-muted">{b.checkOk ? "conferido" : "divergente"}, {b.newTransactions} novas</span>
+                </li>
+              ))}
+            </ul>
+          </section>
         </div>
-      )}
+      </div>
     </>
   );
 }

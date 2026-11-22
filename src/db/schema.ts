@@ -55,6 +55,7 @@ export const importBatches = sqliteTable("import_batches", {
 export const categories = sqliteTable("categories", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   name: text("name").notNull().unique(),
+  /** Nome do ícone (ver src/components/category-icon.tsx); o default antigo fica para não recriar a tabela */
   icon: text("icon").notNull().default("🧾"),
   mccs: text("mccs").notNull().default(""),
   active: integer("active", { mode: "boolean" }).notNull().default(true),

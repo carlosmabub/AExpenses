@@ -8,15 +8,15 @@ export function LoginForm() {
   return (
     <form action={action} className="space-y-4">
       <div>
-        <label className="label" htmlFor="email">E-mail</label>
-        <input className="input" id="email" name="email" type="email" autoComplete="username" required />
+        <label className="label" htmlFor="email">e-mail</label>
+        <input className="input" id="email" name="email" type="email" autoComplete="username" required aria-invalid={error ? true : undefined} />
       </div>
       <div>
-        <label className="label" htmlFor="password">Senha</label>
-        <input className="input" id="password" name="password" type="password" autoComplete="current-password" required />
+        <label className="label" htmlFor="password">senha</label>
+        <input className="input" id="password" name="password" type="password" autoComplete="current-password" required aria-invalid={error ? true : undefined} />
       </div>
-      {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
-      <button className="btn-primary w-full" disabled={pending}>{pending ? "Entrando…" : "Entrar"}</button>
+      <p className="min-h-[1lh] text-sm text-error" aria-live="polite">{error}</p>
+      <button type="submit" className="btn-primary w-full" disabled={pending} aria-busy={pending}>{pending ? "entrando…" : "entrar"}</button>
     </form>
   );
 }

@@ -4,34 +4,41 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const ITEMS = [
-  { href: "/admin", label: "Dashboard", icon: "📊" },
-  { href: "/admin/importar", label: "Importar arquivo", icon: "📥" },
-  { href: "/admin/transacoes", label: "Despesas", icon: "🧾" },
-  { href: "/admin/funcionarios", label: "Funcionários e cartões", icon: "👥" },
-  { href: "/admin/categorias", label: "Categorias", icon: "🏷️" },
-  { href: "/admin/exportar", label: "Exportar Excel", icon: "📤" },
+  { href: "/admin", label: "dashboard" },
+  { href: "/admin/transacoes", label: "despesas" },
+  { href: "/admin/importar", label: "importar" },
+  { href: "/admin/funcionarios", label: "funcionários" },
+  { href: "/admin/categorias", label: "categorias" },
+  { href: "/admin/exportar", label: "exportar" },
 ];
 
-export function SidebarNav({ unlinked }: { unlinked: number }) {
+/** Links do painel: na barra do topo no computador, dentro do menu no celular. */
+export function SidebarNav({ unlinked, stacked = false }: { unlinked: number; stacked?: boolean }) {
   const path = usePathname();
   return (
-    <nav className="space-y-1">
+    <ul className={stacked ? "flex flex-col" : "flex items-center gap-1"}>
       {ITEMS.map((item) => {
         const active = item.href === "/admin" ? path === "/admin" : path.startsWith(item.href);
         return (
-          <Link
-            key={item.href}
-            href={item.href}
-            className={`flex items-center gap-3 rounded-xl px-3 py-2 text-sm ${active ? "bg-white/15 font-semibold text-white" : "text-brand-100 hover:bg-white/10"}`}
-          >
-            <span>{item.icon}</span>
-            <span className="flex-1">{item.label}</span>
-            {item.href === "/admin/funcionarios" && unlinked > 0 && (
-              <span className="rounded-full bg-amber-400 px-1.5 text-[10px] font-bold text-amber-950">{unlinked}</span>
-            )}
-          </Link>
+          <li key={item.href}>
+            <Link
+              href={item.href}
+              aria-current={active ? "page" : undefined}
+              className={`flex min-h-10 items-center gap-2 rounded-pill px-3 font-display text-sm lowercase transition-colors duration-100 ${
+                active ? "bg-paper-3 text-ink" : "text-ink-2 hover:bg-paper-2"
+              } ${stacked ? "min-h-12" : ""}`}
+            >
+              {item.label}
+              {item.href === "/admin/funcionarios" && unlinked > 0 && (
+                <span className="rounded-pill bg-accent px-1.5 text-[11px] leading-5 text-accent-ink tabular-nums">
+                  {unlinked}
+                  <span className="visually-hidden"> cartões não vinculados</span>
+                </span>
+              )}
+            </Link>
+          </li>
         );
       })}
-    </nav>
+    </ul>
   );
 }

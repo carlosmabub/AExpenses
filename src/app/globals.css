@@ -1,40 +1,148 @@
+/* Hallmark · shape: app screen · genre: modern-minimal · theme: Ultraviolet (deal 3/3, seed expense-reporting-app-company-cbb6·7c6922c7·2026-11-22·r0) · redesign: full
+ * nav: employee bottom bar of three, admin top bar of six collapsing to a menu under 60rem · signature: the queue of purchases to classify, each with its deadline drawn as a violet line · states: empty, full, error (forms), loading by the server · ultraviolet: lavender
+ * axes: light/geometric-sans/cool · posture: committed · contrast: pass · v2.0.0 */
+/* Hallmark · dismissed 23 · the accent rule in base.css paints photo slots and this app has no photo slot */
+/* Hallmark · dismissed 49 · the long label sits on btn-danger, whose btn utility already sets white-space: nowrap */
+/* Hallmark · pre-emit critique: P4 H4 E4 S4 R5 V3 · weakest: V, app screens share the category's table and form shapes on purpose; the queue with its deadline line is what only this tool has */
 @import "tailwindcss";
+@import "./tokens.css";
+@import "./base.css" layer(base);
 
-@theme {
-  --color-brand-50: #eef6ff;
-  --color-brand-100: #d9eaff;
-  --color-brand-500: #2f6bff;
-  --color-brand-600: #1f55e6;
-  --color-brand-700: #1a45ba;
-  --color-brand-900: #142a66;
-  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+@layer base {
+  button, [type="submit"], summary { cursor: pointer; }
+  button:active:not(:disabled) { transform: translateY(1px); }
+  button:disabled, input:disabled, select:disabled, textarea:disabled { opacity: 0.55; cursor: not-allowed; }
 }
 
-:root {
-  color-scheme: light;
+/* Superfícies */
+@utility well {
+  border-radius: var(--radius-card);
+  background: var(--color-paper-2);
 }
 
-body {
-  background: #f3f5f9;
-  color: #1c2333;
-}
-
-@utility card {
-  @apply rounded-2xl bg-white shadow-sm ring-1 ring-slate-200/70;
-}
-
+/* Controles: pílulas, minúsculas, Outfit 500 */
 @utility btn {
-  @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition disabled:opacity-50;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+  min-height: 40px;
+  padding: 0 var(--space-lg);
+  border-radius: var(--radius-pill);
+  font: 500 var(--text-sm)/1 var(--font-display);
+  text-transform: lowercase;
+  white-space: nowrap;
+  text-decoration: none;
+  transition: background-color var(--dur-micro) var(--ease-out), color var(--dur-micro) var(--ease-out);
+  &:active { transform: translateY(1px); }
+  &:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+  &:disabled, &[aria-disabled="true"] { opacity: 0.55; cursor: not-allowed; transform: none; }
+  &[aria-busy="true"] { cursor: progress; }
 }
 @utility btn-primary {
-  @apply btn bg-brand-600 text-white hover:bg-brand-700;
+  @apply btn;
+  background: var(--color-accent);
+  color: var(--color-accent-ink);
+  &:hover { background: var(--color-accent-deep); }
 }
 @utility btn-ghost {
-  @apply btn bg-white text-slate-700 ring-1 ring-slate-200 hover:bg-slate-50;
+  @apply btn;
+  color: var(--color-ink);
+  box-shadow: inset 0 0 0 1.5px var(--color-ink);
+  &:hover { background: var(--color-paper-2); }
 }
+@utility btn-danger {
+  @apply btn;
+  color: var(--color-error);
+  box-shadow: inset 0 0 0 1.5px var(--color-error);
+  &:hover { background: var(--color-error-soft); }
+}
+
 @utility input {
-  @apply w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100;
+  width: 100%;
+  min-height: 40px;
+  padding: 0 var(--space-md);
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-size: var(--text-md);
+  box-shadow: inset 0 0 0 1.5px var(--color-rule-2);
+  outline: 2px solid transparent;
+  outline-offset: -3px;
+  &:focus-visible { box-shadow: inset 0 0 0 1.5px var(--color-ink); outline-color: var(--color-focus); }
+  &:disabled { opacity: 0.55; cursor: not-allowed; }
+  &[aria-invalid="true"] { box-shadow: inset 0 0 0 1.5px var(--color-error); }
 }
+@utility textarea {
+  @apply input;
+  min-height: 96px;
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-card);
+  line-height: 1.5;
+}
+
+/* Rótulo: Outfit 500 um passo menor, minúsculo, sem espaçamento extra */
 @utility label {
-  @apply mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500;
+  display: block;
+  margin-bottom: var(--space-2xs);
+  font: 500 var(--text-sm)/1.3 var(--font-display);
+  text-transform: lowercase;
+  color: var(--color-muted);
+}
+
+/* Pílula de estado */
+@utility pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  min-height: 24px;
+  padding: 0 var(--space-sm);
+  border-radius: var(--radius-pill);
+  font: 500 var(--text-xs)/1 var(--font-display);
+  text-transform: lowercase;
+  white-space: nowrap;
+  box-shadow: inset 0 0 0 1.5px var(--color-rule-2);
+  color: var(--color-ink-2);
+}
+
+/* Número em Outfit 300, tabular */
+@utility figure {
+  font: 300 var(--text-3xl)/1 var(--font-display);
+  letter-spacing: var(--tracking-display);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Tabela: cabeçalho minúsculo no tom apagado, só linhas horizontais */
+@utility data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+  & th {
+    padding: var(--space-xs) var(--space-sm);
+    border-bottom: 1px solid var(--color-rule-2);
+    font: 500 var(--text-sm)/1.3 var(--font-display);
+    text-transform: lowercase;
+    color: var(--color-muted);
+    white-space: nowrap;
+  }
+  & th:not(.text-right) { text-align: left; }
+  & td { padding: var(--space-sm); border-bottom: 1px solid var(--color-rule); vertical-align: top; }
+  & th:first-child, & td:first-child { padding-left: 0; }
+  & th:last-child, & td:last-child { padding-right: 0; }
+  & tbody tr:hover { background: color-mix(in oklab, var(--color-paper-2) 60%, transparent); }
+}
+
+/* Cabeçalhos em minúsculas: o material do tema */
+@utility head {
+  font-family: var(--font-display);
+  font-weight: 500;
+  text-transform: lowercase;
+  letter-spacing: var(--tracking-display);
+}
+
+/* Link que sublinha em violeta */
+@utility link {
+  text-decoration: none;
+  &:hover { text-decoration: underline; text-decoration-color: var(--color-accent); }
 }

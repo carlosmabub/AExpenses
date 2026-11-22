@@ -14,76 +14,84 @@ export default async function ImportPage() {
 
   return (
     <>
-      <PageTitle title="Importar arquivo" subtitle="Arquivo de cartões do Bradesco (BVK3). Cada importação é conferida com os totais do próprio arquivo." />
-      <div className="grid gap-6 xl:grid-cols-3">
-        <div className="xl:col-span-2">
+      <PageTitle title="importar arquivo" subtitle="Cada importação é conferida com os totais do próprio arquivo do banco." />
+      <div className="grid gap-12 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+        <div className="min-w-0 space-y-12">
           <ImportForm />
-          <div className="card mt-6 overflow-hidden">
-            <h2 className="border-b border-slate-100 px-5 py-3 font-semibold">Histórico</h2>
-            <table className="w-full text-sm">
-              <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500">
-                <tr><th className="px-5 py-2">Arquivo</th><th className="px-3 py-2">Processamento</th><th className="px-3 py-2">Conferência</th><th className="px-3 py-2 text-right">Total</th><th className="px-3 py-2 text-right">Novas</th><th className="px-3 py-2">Importado em</th></tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {batches.length === 0 && <tr><td colSpan={6} className="px-5 py-6 text-center text-slate-500">Nenhuma importação ainda.</td></tr>}
-                {batches.map((b) => (
-                  <tr key={b.id}>
-                    <td className="px-5 py-2.5">{b.fileName}</td>
-                    <td className="px-3 py-2.5">{date(b.processingDate)}</td>
-                    <td className="px-3 py-2.5">{b.checkOk ? "✅ ok" : "⚠️ divergente"}</td>
-                    <td className="px-3 py-2.5 text-right">{money(b.readTotalCents)}</td>
-                    <td className="px-3 py-2.5 text-right">{b.newTransactions}</td>
-                    <td className="px-3 py-2.5 text-slate-500">{dateTime(b.createdAt)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <section aria-labelledby="historico">
+            <h2 id="historico" className="head text-xl text-ink">histórico</h2>
+            <div className="mt-4 overflow-x-auto">
+              <table className="data-table min-w-[640px]">
+                <thead>
+                  <tr><th scope="col">arquivo</th><th scope="col">processamento</th><th scope="col">conferência</th><th scope="col" className="text-right">total</th><th scope="col" className="text-right">novas</th><th scope="col">importado em</th></tr>
+                </thead>
+                <tbody>
+                  {batches.length === 0 && <tr><td colSpan={6} className="py-6 text-muted">Nenhuma importação ainda.</td></tr>}
+                  {batches.map((b) => (
+                    <tr key={b.id}>
+                      <td>{b.fileName}</td>
+                      <td className="tabular-nums">{date(b.processingDate)}</td>
+                      <td className={b.checkOk ? "" : "text-error"}>{b.checkOk ? "conferido" : "divergente"}</td>
+                      <td className="text-right tabular-nums">{money(b.readTotalCents)}</td>
+                      <td className="text-right tabular-nums">{b.newTransactions}</td>
+                      <td className="tabular-nums text-muted">{dateTime(b.createdAt)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
         </div>
 
-        <div className="space-y-6">
-          <div className="card p-5">
-            <h2 className="font-semibold">Modo do piloto</h2>
-            <p className="mt-1 text-sm text-slate-600">
+        <aside className="min-w-0 space-y-10">
+          <section aria-labelledby="modo">
+            <h2 id="modo" className="head text-xl text-ink">modo do piloto</h2>
+            <p className="mt-2 text-sm text-ink-2">
               {simulated
-                ? "Simulando o arquivo diário: cada compra chega no app no dia seguinte ao lançamento (D+1), às 08:00. Use o relógio para avançar os dias."
+                ? "Simulando o arquivo diário: cada compra chega ao app no dia seguinte ao lançamento, às 08:00. Avance os dias pelo relógio."
                 : "Modo real: as compras chegam no momento da importação."}
             </p>
             {simulated && (
               <>
-                <p className="mt-3 rounded-lg bg-brand-50 p-3 text-sm text-brand-900">📅 {longDay(await now(db))}</p>
-                <div className="mt-3 grid grid-cols-4 gap-2">
+                <p className="mt-4 text-ink">{longDay(await now(db))}</p>
+                <div className="mt-3 flex flex-wrap gap-2">
                   {[1, 2, 7, 30].map((d) => (
                     <form key={d} action={moveClock}>
                       <input type="hidden" name="days" value={d} />
-                      <button className="btn-ghost w-full px-2">+{d} dia{d > 1 ? "s" : ""}</button>
+                      <button type="submit" className="btn-ghost px-4">+{d} dia{d > 1 ? "s" : ""}</button>
                     </form>
                   ))}
                 </div>
               </>
             )}
-            <form action={setClockMode} className="mt-3">
+            <form action={setClockMode} className="mt-4">
               <input type="hidden" name="mode" value={simulated ? "real" : "simulado"} />
-              <button className="text-sm font-medium text-brand-600 underline">{simulated ? "Mudar para modo real" : "Voltar ao modo simulado"}</button>
+              <button type="submit" className="link font-display text-sm lowercase text-accent">{simulated ? "mudar para modo real" : "voltar ao modo simulado"}</button>
             </form>
-          </div>
+          </section>
 
-          <form action={setDeadline} className="card space-y-3 p-5">
-            <h2 className="font-semibold">Prazo para classificar</h2>
-            <p className="text-sm text-slate-600">Depois desse prazo a despesa vira “ignorada” e aparece para o financeiro. Vale para as próximas importações.</p>
-            <div className="flex items-center gap-2">
-              <input className="input w-24" type="number" name="hours" min={1} max={720} defaultValue={await deadlineHours(db)} />
-              <span className="text-sm text-slate-600">horas</span>
-              <button className="btn-ghost ml-auto">Salvar</button>
+          <form action={setDeadline} className="border-t border-rule pt-8">
+            <h2 className="head text-xl text-ink">prazo para classificar</h2>
+            <p className="mt-2 text-sm text-ink-2">Depois do prazo a despesa vira ignorada e aparece para o financeiro. Vale para as próximas importações.</p>
+            <div className="mt-4 flex items-end gap-3">
+              <div className="w-28">
+                <label className="label" htmlFor="hours">horas</label>
+                <input className="input tabular-nums" id="hours" type="number" name="hours" min={1} max={720} defaultValue={await deadlineHours(db)} />
+              </div>
+              <button type="submit" className="btn-ghost">salvar</button>
             </div>
           </form>
 
-          <form action={resetPilot} className="card space-y-2 p-5">
-            <h2 className="font-semibold">Recomeçar demonstração</h2>
-            <p className="text-sm text-slate-600">Apaga importações, cartões e despesas. Funcionários e categorias são mantidos.</p>
-            <button className="btn-ghost text-red-600">Apagar dados do piloto</button>
+          <form action={resetPilot} className="border-t border-rule pt-8">
+            <h2 className="head text-xl text-ink">recomeçar a demonstração</h2>
+            <p className="mt-2 text-sm text-ink-2">Apaga importações, cartões e despesas. Funcionários e categorias ficam.</p>
+            <label className="mt-4 flex items-center gap-2 text-sm text-ink-2">
+              <input type="checkbox" name="confirm" required className="h-4 w-4 accent-[var(--color-error)]" />
+              Entendo que os dados do piloto serão apagados.
+            </label>
+            <button type="submit" className="btn-danger mt-4">apagar dados do piloto</button>
           </form>
-        </div>
+        </aside>
       </div>
     </>
   );

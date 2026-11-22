@@ -12,13 +12,11 @@ export default async function EmployeeLayout({ children }: { children: React.Rea
   const db = await getDb();
   const pending = (await listEmployeeExpenses(db, user.id)).filter((e) => e.status === "pendente").length;
   return (
-    <div className="mx-auto min-h-dvh max-w-md pb-24">
+    <div className="mx-auto min-h-dvh max-w-md px-4 pb-28">
       {(await clockMode(db)) === "simulado" && (
-        <div className="bg-brand-900 px-4 py-1.5 text-center text-[11px] text-brand-100">
-          Piloto · hoje é {longDay(await now(db)).toLowerCase()}
-        </div>
+        <p className="pt-3 text-xs text-muted">piloto: hoje é {longDay(await now(db)).toLowerCase()}</p>
       )}
-      {children}
+      <main id="main">{children}</main>
       <BottomNav pending={pending} />
     </div>
   );

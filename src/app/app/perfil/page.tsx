@@ -1,4 +1,5 @@
 import { eq } from "drizzle-orm";
+import { CreditCard } from "lucide-react";
 import { getDb } from "@/db";
 import { cards } from "@/db/schema";
 import { requireUser } from "@/lib/auth";
@@ -9,32 +10,34 @@ export default async function ProfilePage() {
   const myCards = await (await getDb()).select().from(cards).where(eq(cards.employeeId, user.id)).all();
   return (
     <>
-      <header className="bg-white px-4 pb-4 pt-5 shadow-sm">
-        <h1 className="text-xl font-bold text-slate-900">Perfil</h1>
-      </header>
-      <section className="space-y-4 p-4">
-        <div className="card p-4">
-          <p className="text-lg font-semibold">{user.name}</p>
-          <p className="text-sm text-slate-500">{user.email}</p>
-          <p className="mt-2 text-sm">Centro de custo: <strong>{user.costCenter || "—"}</strong></p>
-        </div>
-        <div className="card p-4">
-          <p className="label">Meus cartões</p>
-          {myCards.length === 0 ? (
-            <p className="text-sm text-slate-500">Nenhum cartão vinculado. Fale com o financeiro.</p>
-          ) : (
-            myCards.map((c) => (
-              <div key={c.id} className="mt-2 flex items-center justify-between rounded-xl bg-gradient-to-r from-brand-700 to-brand-500 p-4 text-white">
-                <span className="text-sm">Visa Empresarial</span>
-                <span className="font-mono">•••• {c.last4}</span>
-              </div>
-            ))
-          )}
-        </div>
-        <form action={logout}>
-          <button className="btn-ghost w-full">Sair</button>
-        </form>
+      <h1 className="head pt-6 text-3xl text-ink">perfil</h1>
+      <dl className="mt-6 space-y-3 border-y border-rule py-4 text-sm">
+        <div><dt className="label">nome</dt><dd className="text-base text-ink">{user.name}</dd></div>
+        <div><dt className="label">e-mail</dt><dd className="text-ink">{user.email}</dd></div>
+        <div><dt className="label">centro de custo</dt><dd className="text-ink">{user.costCenter || "não informado"}</dd></div>
+      </dl>
+
+      <section className="mt-8" aria-labelledby="cartoes">
+        <h2 id="cartoes" className="head text-xl text-ink">meus cartões</h2>
+        {myCards.length === 0 ? (
+          <p className="mt-3 text-sm text-muted">Nenhum cartão vinculado. Fale com o financeiro.</p>
+        ) : (
+          <ul className="mt-3 space-y-2">
+            {myCards.map((c) => (
+              <li key={c.id} className="well flex items-center justify-between p-4">
+                <span className="flex items-center gap-2 text-sm text-ink-2">
+                  <CreditCard size={18} strokeWidth={1.75} aria-hidden="true" /> Visa empresarial
+                </span>
+                <span className="tabular-nums text-ink">final {c.last4}</span>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
+
+      <form action={logout} className="mt-8">
+        <button type="submit" className="btn-ghost w-full">sair</button>
+      </form>
     </>
   );
 }

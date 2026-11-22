@@ -9,6 +9,7 @@ import { importBvk3, type ImportResult } from "@/lib/bvk3/import";
 import { decodeBvk3 } from "@/lib/bvk3/parser";
 import { advanceClock, setSetting } from "@/lib/clock";
 import { hashPassword } from "@/lib/password";
+import { CATEGORY_ICONS } from "@/components/category-icon";
 
 function refresh() {
   revalidatePath("/", "layout");
@@ -95,7 +96,7 @@ export async function saveCategory(form: FormData): Promise<void> {
   const id = Number(form.get("id")) || null;
   const values = {
     name: String(form.get("name") ?? "").trim(),
-    icon: String(form.get("icon") ?? "").trim() || "🧾",
+    icon: CATEGORY_ICONS[String(form.get("icon"))] ? String(form.get("icon")) : "receipt",
     mccs: String(form.get("mccs") ?? "").replace(/[^\d,\-]/g, ""),
     active: form.get("active") !== "0",
   };

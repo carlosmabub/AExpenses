@@ -21,53 +21,46 @@ export default async function EmployeeHome() {
 
   return (
     <>
-      <header className="bg-brand-600 px-4 pb-14 pt-6 text-white">
-        <p className="text-sm text-brand-100">Olá,</p>
-        <h1 className="text-2xl font-bold">{user.name.split(" ")[0]} 👋</h1>
-      </header>
+      <h1 className="head pt-6 text-3xl text-ink">olá, {user.name.split(" ")[0].toLowerCase()}</h1>
 
-      <section className="-mt-10 space-y-4 px-4">
-        <div className="card grid grid-cols-2 divide-x divide-slate-100 p-4">
-          <div>
-            <p className="text-xs text-slate-500">Para classificar</p>
-            <p className="text-3xl font-bold text-slate-900">{pending.length}</p>
-            {pending[0] && <p className="text-xs font-medium text-amber-600">próxima {timeLeft(pending[0].tx.dueAt, at)}</p>}
-          </div>
-          <div className="pl-4">
-            <p className="text-xs text-slate-500">Gasto no mês</p>
-            <p className="text-xl font-bold text-slate-900">{money(monthTotal)}</p>
-            <p className="text-xs text-slate-500">{expenses.length} lançamentos no total</p>
-          </div>
+      <dl className="mt-6 grid grid-cols-2 border-y border-rule">
+        <div className="py-4 pr-4">
+          <dt className="label">para classificar</dt>
+          <dd className="figure text-accent">{pending.length}</dd>
+          {pending[0] && <dd className="mt-1 text-sm text-muted">a próxima {timeLeft(pending[0].tx.dueAt, at)}</dd>}
         </div>
+        <div className="border-l border-rule py-4 pl-4">
+          <dt className="label">gasto no mês</dt>
+          <dd className="figure text-2xl">{money(monthTotal)}</dd>
+          <dd className="mt-1 text-sm text-muted">{expenses.length} lançamentos no total</dd>
+        </div>
+      </dl>
 
-        {ignored.length > 0 && (
-          <Link href="/app/despesas?aba=ignoradas" className="card flex items-center gap-3 bg-red-50 p-3 ring-red-200">
-            <span className="text-xl">⚠️</span>
-            <p className="text-sm text-red-800">
-              <strong>{ignored.length}</strong> despesa{ignored.length > 1 ? "s passaram" : " passou"} do prazo e
-              {ignored.length > 1 ? " foram enviadas" : " foi enviada"} ao financeiro. Você ainda pode classificar.
-            </p>
-          </Link>
+      {ignored.length > 0 && (
+        <Link href="/app/despesas?aba=ignoradas" className="well mt-4 block p-4 text-sm text-ink-2 hover:bg-paper-3">
+          <strong className="font-medium text-error">
+            {ignored.length} despesa{ignored.length > 1 ? "s passaram" : " passou"} do prazo
+          </strong>{" "}
+          e {ignored.length > 1 ? "foram enviadas" : "foi enviada"} ao financeiro. Você ainda pode classificar.
+        </Link>
+      )}
+
+      <section className="mt-8" aria-labelledby="fila">
+        <div className="flex items-baseline justify-between">
+          <h2 id="fila" className="head text-xl text-ink">do que se tratam essas compras?</h2>
+          <Link href="/app/despesas" className="link shrink-0 font-display text-sm lowercase text-accent">ver todas</Link>
+        </div>
+        {pending.length === 0 ? (
+          <p className="mt-4 border-t border-rule pt-4 text-sm text-muted">
+            Tudo em dia. Quando uma compra nova chegar do banco, ela aparece aqui.
+          </p>
+        ) : (
+          <ul className="mt-2 border-t border-rule">
+            {pending.map((e) => (
+              <ExpenseCard key={e.tx.id} expense={e} now={at} icons={icons} />
+            ))}
+          </ul>
         )}
-
-        <div>
-          <div className="mb-2 flex items-center justify-between">
-            <h2 className="font-semibold text-slate-800">Do que se tratam essas compras?</h2>
-            <Link href="/app/despesas" className="text-sm font-medium text-brand-600">Ver todas</Link>
-          </div>
-          {pending.length === 0 ? (
-            <div className="card p-6 text-center text-sm text-slate-500">
-              <p className="text-3xl">🎉</p>
-              Tudo em dia! Quando uma compra nova chegar do banco, ela aparece aqui.
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {pending.map((e) => (
-                <ExpenseCard key={e.tx.id} expense={e} now={at} icons={icons} />
-              ))}
-            </div>
-          )}
-        </div>
       </section>
     </>
   );
