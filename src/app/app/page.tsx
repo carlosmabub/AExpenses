@@ -38,7 +38,7 @@ export default async function EmployeeHome() {
 
       {card ? (
         <div className="relative -mt-20">
-          <CorporateCard last4={card.last4} holder={card.holderName} />
+          <CorporateCard last4={card.last4} holder={card.holderName} company="ASTEC" />
         </div>
       ) : (
         <div className="-mt-20 h-16" />
