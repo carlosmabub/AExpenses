@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Building2, HandCoins, Plus, Wallet, X } from "lucide-react";
+import { HandCoins, Plus, X } from "lucide-react";
 import { getDb } from "@/db";
 import { requireUser } from "@/lib/auth";
 import { listCategories, listEmployeeExpenses } from "@/lib/expenses";
@@ -35,18 +35,8 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
         </p>
       </TopBar>
 
-      <section className="surface-card -mt-4 px-4 pb-2 pt-1">
-        <div className="form-row">
-          <Building2 size={20} strokeWidth={1.75} aria-hidden="true" className="shrink-0" />
-          <span className="shrink-0">Centro de custos</span>
-          <span className="flex-1 text-right text-muted">{report.costCenter || "Não informado"}</span>
-        </div>
-        <div className="form-row">
-          <Wallet size={20} strokeWidth={1.75} aria-hidden="true" className="shrink-0" />
-          <span className="shrink-0">A reembolsar</span>
-          <span className="flex-1 text-right tabular-nums text-muted">{money(summary.reimbursableCents)}</span>
-        </div>
-        {summary.advances.length > 0 && (
+      {summary.advances.length > 0 && (
+        <section className="surface-card -mt-4 px-4">
           <div className="form-row border-b-0">
             <HandCoins size={20} strokeWidth={1.75} aria-hidden="true" className="shrink-0" />
             <span className="shrink-0">Adiantamento</span>
@@ -55,10 +45,10 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
               {balance > 0 ? `devolver ${money(balance)}` : balance < 0 ? `a receber ${money(-balance)}` : "acertado"}
             </span>
           </div>
-        )}
-      </section>
+        </section>
+      )}
 
-      <h2 className="mb-2 mt-6 px-1 text-ink">Despesas</h2>
+      <h2 className="mb-2 mt-4 px-1 text-ink">Despesas</h2>
       {summary.expenses.length === 0 ? (
         <p className="surface-card px-4 py-4 text-sm text-muted">Nenhuma despesa ainda.</p>
       ) : (
