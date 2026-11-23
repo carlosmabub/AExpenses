@@ -10,7 +10,7 @@ import { decodeBvk3 } from "@/lib/bvk3/parser";
 import { advanceClock, DAILY_FILE_HOUR_UTC, forgetSettings, setClock, setSetting } from "@/lib/clock";
 import { linkCardTo } from "@/lib/people";
 import { PILOT_USER } from "@/db/seed";
-import { approveRemaining, createAdvance, reviewExpense } from "@/lib/reports";
+import { approveExpenses, approveRemaining, createAdvance, reviewExpense } from "@/lib/reports";
 import { parseMoney } from "@/lib/format";
 import { CATEGORY_ICONS } from "@/components/category-icon";
 
@@ -133,4 +133,15 @@ export async function createAdvanceAction(_: AdminFormState, form: FormData): Pr
   }
   refresh();
   return null;
+}
+
+export async function approveSelectedAction(form: FormData): Promise<void> {
+  const reviewer = await requireApprover();
+  const expenseIds = form.getAll("expenseIds").map(Number).filter((n) => Number.isInteger(n) && n > 0);
+  try {
+    await approveExpenses(await getDb(), { expenseIds, reviewerId: reviewer.id });
+  } catch {
+    // sem permissão ou nada marcado: a tela só recarrega
+  }
+  refresh();
 }

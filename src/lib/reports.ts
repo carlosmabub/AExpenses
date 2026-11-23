@@ -207,6 +207,15 @@ export async function approveRemaining(db: Db, input: { reportId: number; review
   for (const r of rows) await reviewExpense(db, { expenseId: r.id, reviewerId: input.reviewerId, decision: "aprovada", comment: "" });
 }
 
+/** Aprova várias despesas de uma vez (só as ainda não analisadas); cada uma passa pela regra de quem pode aprovar. */
+export async function approveExpenses(db: Db, input: { expenseIds: number[]; reviewerId: number }): Promise<number> {
+  const ids = [...new Set(input.expenseIds)];
+  if (!ids.length) throw new ExpenseError("Marque ao menos uma despesa.");
+  const rows = await db.select({ id: expenses.id }).from(expenses).where(and(inArray(expenses.id, ids), isNull(expenses.reviewStatus))).all();
+  for (const r of rows) await reviewExpense(db, { expenseId: r.id, reviewerId: input.reviewerId, decision: "aprovada", comment: "" });
+  return rows.length;
+}
+
 export async function createAdvance(
   db: DbLike,
   input: { employeeId: number; amountCents: number; date: string; description: string; createdBy: number },

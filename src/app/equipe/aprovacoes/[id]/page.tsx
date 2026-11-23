@@ -11,6 +11,7 @@ import { ReportBadge, StatusBadge } from "@/components/status-badge";
 import { CategoryIcon } from "@/components/category-icon";
 import { approveRemainingAction } from "@/app/admin/actions";
 import { ReviewControls } from "@/components/review-controls";
+import { BulkApprove } from "@/components/bulk-approve";
 
 export default async function TeamApprovalPage({ params }: { params: Promise<{ id: string }> }) {
   const user = await requireApprover();
@@ -20,6 +21,7 @@ export default async function TeamApprovalPage({ params }: { params: Promise<{ i
   const { report } = summary;
   const reviewing = report.status === "enviado";
   const unreviewed = summary.expenses.filter((e) => !e.e.reviewStatus).length;
+  const isPending = (r: (typeof summary.expenses)[number]) => reviewing && !r.e.reviewStatus;
 
   return (
     <div>
@@ -61,16 +63,24 @@ export default async function TeamApprovalPage({ params }: { params: Promise<{ i
         <div className="flex flex-wrap items-end justify-between gap-3">
           <h2 id="despesas" className="head text-xl text-ink">despesas</h2>
           {reviewing && unreviewed > 0 && (
+            <div className="flex flex-wrap items-center gap-3">
+              <BulkApprove total={unreviewed} />
             <form action={approveRemainingAction}>
               <input type="hidden" name="reportId" value={report.id} />
               <button type="submit" className="btn-ghost">aprovar as {unreviewed} restantes</button>
             </form>
+            </div>
           )}
         </div>
         <ul className="mt-3 border-t border-rule">
           {summary.expenses.map((r) => (
             <li key={r.e.id} className="grid gap-4 border-b border-rule py-4 md:grid-cols-[minmax(0,1fr)_auto]">
               <div className="flex min-w-0 gap-3">
+                {isPending(r) && (
+                  <label className="-ml-2 flex h-10 w-10 shrink-0 items-center justify-center">
+                    <input type="checkbox" name="expenseIds" value={r.e.id} form="bulk-approve" className="h-4 w-4 accent-[var(--color-ink)]" aria-label={`Selecionar ${r.category?.name ?? "despesa"} de ${money(r.e.amountCents)}`} />
+                  </label>
+                )}
                 <CategoryIcon name={r.category?.icon} className="mt-0.5 shrink-0 text-muted" />
                 <div className="min-w-0">
                   <p className="font-medium text-ink">

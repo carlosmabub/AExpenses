@@ -3,14 +3,14 @@ import path from "node:path";
 import { beforeEach, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 import { createDb, type Db } from "@/db";
-import { cards, categories, employees, expenses } from "@/db/schema";
+import { cards, categories, employees, expenses, reports } from "@/db/schema";
 import { seedIfEmpty } from "@/db/seed";
 import { importBvk3 } from "@/lib/bvk3/import";
 import { setClock } from "@/lib/clock";
 import { createReport } from "@/lib/reports";
 import { createManualExpense, listAdminExpenses, listEmployeeExpenses, moveExpensesToReport, saveExpense } from "@/lib/expenses";
 import { decodeBvk3 } from "@/lib/bvk3/parser";
-import { approveRemaining, listReportsForApproval, reviewExpense, submitReport } from "@/lib/reports";
+import { approveExpenses, approveRemaining, listReportsForApproval, reviewExpense, submitReport } from "@/lib/reports";
 import { addCardByDigits, assignCards, canReview, deletePerson, inAlertWindow, linkCardTo, reactivatePerson, savePerson, setLeader, setTeam, teamAlerts, teamSpending, terminatePerson } from "@/lib/people";
 
 const sample = decodeBvk3(readFileSync(path.join(__dirname, "fixtures/BVK3EXEMPLOMENSAL.txt")));
@@ -60,6 +60,17 @@ describe("equipes, aprovadores e desligamento", () => {
     await approveRemaining(db, { reportId: a.reportId, reviewerId: admin });
     // o aprovador não aprova o próprio relatório
     expect(await canReview(db, { id: lider, role: "aprovador" }, lider)).toBe(false);
+  });
+
+  it("aprovar várias despesas de uma vez respeita quem pode aprovar", async () => {
+    const { reportId, ids } = await sendReport(diego, 3);
+    await expect(approveExpenses(db, { expenseIds: [], reviewerId: lider })).rejects.toThrow(/Marque/);
+    await expect(approveExpenses(db, { expenseIds: ids, reviewerId: bruno })).rejects.toThrow(/não pode aprovar/);
+    expect(await approveExpenses(db, { expenseIds: ids.slice(0, 2), reviewerId: lider })).toBe(2);
+    // as já aprovadas não contam de novo; a terceira fecha o relatório
+    expect(await approveExpenses(db, { expenseIds: ids, reviewerId: lider })).toBe(1);
+    const status = (await db.select().from(reports).where(eq(reports.id, reportId)).get())!.status;
+    expect(status).toBe("aprovado");
   });
 
   it("setLeader e setTeam são coerentes e impedem ciclo", async () => {
