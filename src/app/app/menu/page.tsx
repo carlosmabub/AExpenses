@@ -18,7 +18,7 @@ export default async function MenuPage() {
   const items = [
     { href: "/app/despesas", label: "Despesas", Icon: ReceiptText, count: pending },
     { href: "/app/relatorios", label: "Relatórios", Icon: FolderOpen, count: reports },
-    ...(leads ? [{ href: "/equipe", label: "Minha equipe", Icon: UsersRound, count: waiting }] : []),
+    ...(leads ? [{ href: "/equipe/aprovacoes", label: "Minha equipe", Icon: UsersRound, count: waiting }] : []),
     { href: "/app/perfil", label: "Perfil", Icon: UserRound, count: 0 },
   ];
   return (

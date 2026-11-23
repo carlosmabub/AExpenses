@@ -54,7 +54,7 @@ export default async function EmployeeHome() {
 
       <div className="mt-6 space-y-3">
         {alerts.length > 0 && (
-          <Link href="/equipe" className="surface-card flex items-start gap-3 p-4">
+          <Link href="/equipe/aprovacoes" className="surface-card flex items-start gap-3 p-4">
             <TriangleAlert size={20} aria-hidden="true" className="mt-0.5 shrink-0 text-accent" />
             <span className="text-sm text-ink">
               <span className="block font-medium">Despesas da equipe vencendo neste mês</span>
