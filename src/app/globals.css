@@ -1,5 +1,5 @@
-/* Hallmark · shape: app screen · genre: modern-minimal · theme: Ultraviolet (deal 3/3, seed expense-reporting-app-company-cbb6·7c6922c7·2026-11-22·r0) · redesign: full
- * nav: employee bottom bar of three, admin top bar of six collapsing to a menu under 60rem · signature: the queue of purchases to classify, each with its deadline drawn as a violet line · states: empty, full, error (forms), loading by the server · ultraviolet: lavender
+/* Hallmark · shape: app screen · genre: modern-minimal · theme: brand (Astec navy #00182E = oklch(20.4% 0.054 247.6) as ink and accent, the Ultraviolet system re-tinted to it) · redesign: full
+ * nav: employee bottom bar of four with a + action, admin top bar collapsing to a menu under 60rem · signature: the list of expenses without a report, each with its month-end deadline drawn as a navy line · states: empty, full, error (forms), loading by the server
  * axes: light/geometric-sans/cool · posture: committed · contrast: pass · v2.0.0 */
 /* Hallmark · dismissed 23 · the accent rule in base.css paints photo slots and this app has no photo slot */
 /* Hallmark · dismissed 49 · the long label sits on btn-danger, whose btn utility already sets white-space: nowrap */
@@ -144,5 +144,5 @@
 /* Link que sublinha em violeta */
 @utility link {
   text-decoration: none;
-  &:hover { text-decoration: underline; text-decoration-color: var(--color-accent); }
+  &:hover { text-decoration: underline; text-decoration-color: currentColor; }
 }

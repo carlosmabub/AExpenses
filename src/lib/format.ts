@@ -42,3 +42,10 @@ export function titleCase(s: string): string {
 export function installmentLabel(installment: number, total: number): string | null {
   return total > 1 ? `Parcela ${installment}/${total}` : null;
 }
+
+/** "1.234,56" ou "45" -> centavos; NaN se não for um valor */
+export function parseMoney(input: string): number {
+  const clean = input.replace(/[R$\s]/g, "").replace(/\./g, "").replace(",", ".");
+  if (!/^\d+(\.\d{1,2})?$/.test(clean)) return Number.NaN;
+  return Math.round(Number(clean) * 100);
+}

@@ -12,13 +12,15 @@ export default function ExportPage() {
           <label className="label" htmlFor="e-status">status</label>
           <select id="e-status" name="status" className="input" defaultValue="">
             <option value="">todos</option>
-            <option value="classificada">só classificadas</option>
+            <option value="aprovada">só aprovadas</option>
+            <option value="em_aprovacao">só em aprovação</option>
+            <option value="devolvida">só devolvidas</option>
+            <option value="sem_relatorio">só sem relatório</option>
             <option value="ignorada">só ignoradas</option>
-            <option value="pendente">só pendentes</option>
           </select>
         </div>
         <p className="col-span-2 text-sm text-ink-2">
-          Colunas: funcionário, centro de custo, cartão, datas, estabelecimento, CNPJ, cidade, MCC, parcela, valor, categoria, descrição, comprovante, status e referência Visa.
+          Sai tudo, com relatório, status e a aprovação de cada despesa (aprovada, devolvida e o comentário do aprovador), além de forma de pagamento, datas, estabelecimento, CNPJ, MCC, valor, tipo, descrição e comprovante.
         </p>
         <button type="submit" className="btn-primary col-span-2 w-fit"><Download size={16} aria-hidden="true" /> baixar planilha</button>
       </form>

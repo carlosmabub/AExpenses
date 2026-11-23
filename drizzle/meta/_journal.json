@@ -15,6 +15,13 @@
       "when": 1795390809445,
       "tag": "0001_category-icons",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1795392303251,
+      "tag": "0002_reports-and-expenses",
+      "breakpoints": true
     }
   ]
 }

@@ -1,4 +1,7 @@
-import { Banknote, BedDouble, Car, Fuel, Paperclip, Plane, Receipt, SquareParking, Utensils, type LucideIcon } from "lucide-react";
+import {
+  Banknote, BedDouble, Briefcase, Building, Car, Cog, Fuel, HardHat, Package, Paperclip, Plane, Receipt, Settings, SquareParking, Ticket, Truck, Utensils, Wrench,
+  type LucideIcon,
+} from "lucide-react";
 
 /** Ícones que o admin pode escolher para uma categoria (o banco guarda o nome). */
 export const CATEGORY_ICONS: Record<string, { icon: LucideIcon; label: string }> = {
@@ -10,6 +13,15 @@ export const CATEGORY_ICONS: Record<string, { icon: LucideIcon; label: string }>
   plane: { icon: Plane, label: "avião" },
   paperclip: { icon: Paperclip, label: "clipe" },
   banknote: { icon: Banknote, label: "dinheiro" },
+  package: { icon: Package, label: "caixa" },
+  cog: { icon: Cog, label: "engrenagem" },
+  wrench: { icon: Wrench, label: "chave inglesa" },
+  "hard-hat": { icon: HardHat, label: "capacete" },
+  settings: { icon: Settings, label: "ajustes" },
+  building: { icon: Building, label: "prédio" },
+  truck: { icon: Truck, label: "caminhão" },
+  briefcase: { icon: Briefcase, label: "maleta" },
+  ticket: { icon: Ticket, label: "ingresso" },
   receipt: { icon: Receipt, label: "recibo" },
 };
 

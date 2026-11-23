@@ -2,7 +2,7 @@
 
 Prestação de contas dos cartões corporativos. O app recebe as compras do arquivo de cartões do Bradesco
 (layout **BVK3**), pede ao funcionário que classifique cada compra e mostra ao financeiro o que foi
-classificado e o que foi ignorado. No fim, exporta um Excel para carga no ERP.
+preenchido, aprovado e ignorado. No fim, exporta um Excel para carga no ERP.
 
 - **Funcionário (celular)**: `/app`, web app instalável (PWA). Vê as compras que chegaram, escolhe a categoria
   (já sugerida pelo ramo do estabelecimento), descreve e fotografa o comprovante.
@@ -14,7 +14,7 @@ classificado e o que foi ignorado. No fim, exporta um Excel para carga no ERP.
 ```bash
 npm install
 npm run dev        # http://localhost:3000
-npm test           # leitor BVK3 e regras de importação/classificação
+npm test           # leitor BVK3, importação, relatórios e aprovação
 npm run build      # build de produção
 npm run db:reset   # apaga o banco local (data/) e recomeça do seed
 ```
@@ -35,11 +35,25 @@ O banco ainda vai confirmar se o arquivo BVK3 sai diariamente. Para demonstrar o
 1. Entre como **Financeiro** → *Importar arquivo* → envie o arquivo de exemplo.
 2. No modo simulado, cada compra chega ao app no dia seguinte ao lançamento (D+1, 08:00). Use o
    **relógio do piloto** (+1d, +2d, +7d) para avançar os dias.
-3. Entre como um funcionário (ex.: **Diego Rocha**) num celular ou janela estreita e classifique as compras.
-4. O que não for classificado em 48h vira **ignorada** e aparece no dashboard do financeiro.
+3. Entre como um funcionário (ex.: **Diego Rocha**) num celular ou janela estreita, crie um relatório pelo + e lance nele as compras.
+4. O que não entrar num relatório enviado até o fim do mês vira **ignorada** e aparece no dashboard do financeiro.
 5. *Exportar Excel* gera a planilha da prestação de contas.
 
 Com o arquivo diário real, mude para **modo real** em *Importar arquivo*: as compras chegam no momento da importação.
+
+## Fluxo (inspirado no VExpenses)
+
+1. As compras do cartão chegam sozinhas pelo arquivo do banco e ficam em **despesas sem relatório**.
+   Despesas fora do cartão (dinheiro ou adiantamento) são lançadas pelo botão **+**.
+2. O funcionário preenche cada despesa: tipo, descrição, centro de custo (vem do cadastro, pode mudar por despesa)
+   e **comprovante**, obrigatório pela política de cada tipo de despesa.
+3. Cria um **relatório** (nome, centro de custo, adiantamentos, observações), coloca as despesas nele e envia para aprovação.
+4. O aprovador (por enquanto o financeiro, depois o líder de cada equipe) **aprova ou devolve cada despesa**, com comentário.
+   A devolvida volta para o funcionário corrigir e retorna ao aprovador; o relatório fica aprovado quando todas forem aprovadas.
+5. **Adiantamentos** são registrados pelo financeiro; o relatório mostra quanto foi gasto e o saldo a devolver.
+6. **Prazo**: a despesa precisa estar num relatório enviado até o fim do mês da compra (23:59 de Brasília), com no mínimo
+   5 dias desde a chegada. Depois disso ela aparece como ignorada para o financeiro.
+7. O Excel sai com tudo: relatório, status e a aprovação de cada despesa.
 
 ## Regras principais
 
@@ -49,17 +63,17 @@ Com o arquivo diário real, mude para **modo real** em *Importar arquivo*: as co
   impressão digital HMAC (`AEX_CARD_SECRET`) e pelos 4 últimos dígitos.
 - **Vínculo cartão ↔ funcionário**: pelo "nome no cartão" do cadastro do funcionário. Cartões sem dono ficam
   na fila de não vinculados.
-- **Lançamentos**: saldo anterior, pagamento e ajustes são ignorados. Saques entram e pedem justificativa.
-  Estornos aparecem sem pedir classificação. Os códigos foram deduzidos do exemplo e a tabela oficial deve ser
+- **Lançamentos**: saldo anterior, pagamento e ajustes são ignorados. Saques entram e pedem preenchimento.
+  Estornos aparecem sem pedir preenchimento. Os códigos foram deduzidos do exemplo e a tabela oficial deve ser
   pedida ao banco (`src/lib/bvk3/codes.ts`).
 - **Duplicidade**: reimportar o mesmo arquivo não duplica (referência Visa + parcela).
-- **Parcelas**: a parcela de uma compra já classificada herda a classificação.
+- **Parcelas**: a parcela nova de uma compra já preenchida herda o preenchimento.
 
 ## Estrutura
 
 ```
 src/lib/bvk3/       leitor do layout BVK3, tipos de lançamento e importação
-src/lib/            prazo/relógio, sugestão por MCC, classificação, exportação Excel, autenticação
+src/lib/            prazo/relógio, sugestão por MCC, despesas, relatórios e adiantamentos, exportação Excel, autenticação
 src/db/             schema (Drizzle + SQLite/Turso) e seed
 src/app/app/        telas do funcionário (mobile)
 src/app/admin/      telas do financeiro (desktop)

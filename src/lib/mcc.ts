@@ -39,7 +39,7 @@ export function suggestCategory<T extends CategoryLike>(categories: T[], mcc: st
   return categories.find((c) => c.active && c.mccs && mccMatches(c.mccs, mcc));
 }
 
-/** Categorias padrão do piloto (viagem), editáveis no painel do admin. */
+/** Tipos de despesa padrão (viagem e fabricação de equipamentos), editáveis no painel do admin. */
 export const DEFAULT_CATEGORIES: { name: string; icon: string; mccs: string }[] = [
   { name: "Alimentação", icon: "utensils", mccs: "5411,5422,5441,5451,5462,5499,5811-5814,5300" },
   { name: "Hospedagem", icon: "bed", mccs: "3501-3999,7011,7012" },
@@ -49,5 +49,14 @@ export const DEFAULT_CATEGORIES: { name: string; icon: string; mccs: string }[] 
   { name: "Passagem aérea", icon: "plane", mccs: "3000-3299,4511,4722" },
   { name: "Material/Escritório", icon: "paperclip", mccs: "5111,5943,5044,5045" },
   { name: "Saque", icon: "banknote", mccs: "6010,6011" },
+  { name: "Matéria-prima e insumos", icon: "package", mccs: "5051,5085,5039" },
+  { name: "Peças e componentes", icon: "cog", mccs: "5013,5065,5533" },
+  { name: "Ferramentas e equipamentos", icon: "wrench", mccs: "5072,5251,5200" },
+  { name: "EPIs", icon: "hard-hat", mccs: "5137,5699" },
+  { name: "Manutenção de máquinas", icon: "settings", mccs: "7699,7692" },
+  { name: "Manutenção de instalações", icon: "building", mccs: "1711,1731,1799,5211" },
+  { name: "Frete e envio", icon: "truck", mccs: "4214,4215,9402" },
+  { name: "Serviços técnicos de terceiros", icon: "briefcase", mccs: "7392,8911,8999" },
+  { name: "Feiras e eventos", icon: "ticket", mccs: "7941,7991,7999" },
   { name: "Outros", icon: "receipt", mccs: "" },
 ];

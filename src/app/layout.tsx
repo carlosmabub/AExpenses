@@ -13,8 +13,8 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  // mesma cor do papel lavanda do tema (oklch 95% 0.02 300)
-  themeColor: "#f2edf8",
+  // azul-marinho da Astec
+  themeColor: "#00182E",
   width: "device-width",
   initialScale: 1,
 };

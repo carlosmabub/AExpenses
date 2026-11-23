@@ -22,11 +22,11 @@ function useBlob(): boolean {
   return !!process.env.BLOB_READ_WRITE_TOKEN;
 }
 
-export async function saveReceipt(file: File, transactionId: number): Promise<{ path: string; mime: string }> {
+export async function saveReceipt(file: File, owner: number | string): Promise<{ path: string; mime: string }> {
   const ext = EXTENSIONS[file.type];
   if (!ext) throw new Error("Envie uma foto (JPG, PNG, WEBP, HEIC) ou PDF do comprovante.");
   if (file.size > MAX_BYTES) throw new Error("O comprovante deve ter no máximo 8 MB.");
-  const name = `${transactionId}-${randomBytes(6).toString("hex")}.${ext}`;
+  const name = `${String(owner).replace(/[^\w-]/g, "")}-${randomBytes(6).toString("hex")}.${ext}`;
 
   if (useBlob()) {
     // Privado: só é lido pelo servidor, que confere se quem pede é o dono ou o financeiro

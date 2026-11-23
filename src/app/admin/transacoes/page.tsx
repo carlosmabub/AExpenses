@@ -6,7 +6,7 @@ import { employees } from "@/db/schema";
 import { listAdminExpenses, listCategories } from "@/lib/expenses";
 import { date, installmentLabel, money, titleCase } from "@/lib/format";
 import type { ExpenseStatus } from "@/lib/status";
-import { classifiedLate } from "@/lib/status";
+import { PAYMENT_LABELS, STATUS_LABELS } from "@/lib/status";
 import { PageTitle } from "@/components/page-title";
 import { StatusBadge } from "@/components/status-badge";
 import { CategoryIcon } from "@/components/category-icon";
@@ -26,7 +26,7 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
   });
   const people = await db.select().from(employees).where(eq(employees.role, "funcionario")).orderBy(asc(employees.name)).all();
   const cats = await listCategories(db, false);
-  const total = rows.filter((r) => r.tx.kind !== "estorno").reduce((s, r) => s + r.tx.amountCents, 0);
+  const total = rows.filter((r) => r.e.kind !== "estorno").reduce((s, r) => s + r.e.amountCents, 0);
   const exportQuery = new URLSearchParams(Object.entries(sp).filter(([, v]) => v) as [string, string][]).toString();
 
   return (
@@ -49,14 +49,11 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
           <label className="label" htmlFor="f-status">status</label>
           <select id="f-status" name="status" defaultValue={sp.status ?? ""} className="input">
             <option value="">todos</option>
-            <option value="pendente">pendente</option>
-            <option value="classificada">classificada</option>
-            <option value="ignorada">ignorada</option>
-            <option value="estorno">estorno</option>
+            {Object.entries(STATUS_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
           </select>
         </div>
         <div>
-          <label className="label" htmlFor="f-categoria">categoria</label>
+          <label className="label" htmlFor="f-categoria">tipo</label>
           <select id="f-categoria" name="categoria" defaultValue={sp.categoria ?? ""} className="input">
             <option value="">todas</option>
             {cats.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
@@ -83,7 +80,7 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
               <th scope="col">data</th>
               <th scope="col">funcionário</th>
               <th scope="col">estabelecimento</th>
-              <th scope="col">classificação</th>
+              <th scope="col">preenchimento</th>
               <th scope="col" className="text-right">valor</th>
               <th scope="col">status</th>
             </tr>
@@ -91,40 +88,37 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
           <tbody>
             {rows.length === 0 && <tr><td colSpan={6} className="py-8 text-muted">Nenhuma despesa com esses filtros.</td></tr>}
             {rows.map((r) => {
-              const parcel = installmentLabel(r.tx.installment, r.tx.installmentsTotal);
+              const parcel = r.tx ? installmentLabel(r.tx.installment, r.tx.installmentsTotal) : null;
               return (
-                <tr key={r.tx.id}>
-                  <td className="whitespace-nowrap tabular-nums">{date(r.tx.purchaseDate)}</td>
+                <tr key={r.e.id}>
+                  <td className="whitespace-nowrap tabular-nums">{date(r.e.purchaseDate)}</td>
                   <td>
-                    {r.employee?.name ?? <span className="text-error">{r.card.holderName}, não vinculado</span>}
-                    <span className="block text-muted">cartão final {r.card.last4}</span>
+                    {r.owner?.name ?? <span className="text-error">{r.card?.holderName}, não vinculado</span>}
+                    <span className="block text-muted">{PAYMENT_LABELS[r.e.paymentMethod]}{r.card ? `, final ${r.card.last4}` : ""}</span>
                   </td>
                   <td>
-                    <Link href={`/admin/transacoes/${r.tx.id}`} className="link font-medium text-ink">{titleCase(r.tx.merchant)}</Link>
+                    <Link href={`/admin/transacoes/${r.e.id}`} className="link font-medium text-ink">{titleCase(r.e.merchant)}</Link>
                     <span className="block text-muted">
-                      {titleCase(r.tx.city)}, {titleCase(r.tx.activityDescription).toLowerCase()}
-                      {parcel ? `, ${parcel.toLowerCase()}` : ""}
+                      {[r.e.city && titleCase(r.e.city), r.tx && titleCase(r.tx.activityDescription).toLowerCase(), parcel?.toLowerCase()].filter(Boolean).join(", ")}
                     </span>
                   </td>
                   <td>
-                    {r.classification ? (
+                    {r.category ? (
                       <>
-                        <span className="flex items-center gap-2 text-ink"><CategoryIcon name={r.category?.icon} size={16} className="text-muted" />{r.category?.name}</span>
-                        <span className="block max-w-xs truncate text-muted">{r.classification.description}</span>
+                        <span className="flex items-center gap-2 text-ink"><CategoryIcon name={r.category.icon} size={16} className="text-muted" />{r.category.name}</span>
+                        <span className="block max-w-xs truncate text-muted">{r.e.description}</span>
                       </>
                     ) : (
-                      <span className="text-muted">sem classificação</span>
+                      <span className="text-muted">não preenchida</span>
                     )}
+                    {r.report && <span className="block text-muted">relatório: {r.report.name}</span>}
                   </td>
-                  <td className="whitespace-nowrap text-right tabular-nums">{money(r.tx.amountCents)}</td>
+                  <td className="whitespace-nowrap text-right tabular-nums">{money(r.e.amountCents)}</td>
                   <td>
                     <span className="flex flex-wrap items-center gap-2">
                       <StatusBadge status={r.status} />
-                      {r.classification?.receiptPath && <Paperclip size={14} aria-label="Com comprovante" className="text-muted" />}
+                      {r.e.receiptPath && <Paperclip size={14} aria-label="Com comprovante" className="text-muted" />}
                     </span>
-                    {r.classification && classifiedLate({ kind: r.tx.kind, dueAt: r.tx.dueAt, classifiedAt: r.classification.classifiedAt }) && (
-                      <span className="mt-1 block text-xs text-error">fora do prazo</span>
-                    )}
                   </td>
                 </tr>
               );

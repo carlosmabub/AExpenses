@@ -2,7 +2,7 @@ import Link from "next/link";
 import { and, eq, isNull } from "drizzle-orm";
 import { Menu } from "lucide-react";
 import { getDb } from "@/db";
-import { cards } from "@/db/schema";
+import { cards, reports } from "@/db/schema";
 import { requireAdmin } from "@/lib/auth";
 import { clockMode, now } from "@/lib/clock";
 import { date } from "@/lib/format";
@@ -15,7 +15,7 @@ export const dynamic = "force-dynamic";
 function PilotClock({ day }: { day: string }) {
   return (
     <div className="flex items-center gap-2">
-      <span className="text-sm text-ink-2" title="Relógio do piloto">piloto: {day}</span>
+      <span className="whitespace-nowrap text-sm text-ink-2" title="Relógio do piloto">piloto: {day}</span>
       {[1, 2, 7].map((d) => (
         <form key={d} action={moveClock}>
           <input type="hidden" name="days" value={d} />
@@ -32,6 +32,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const user = await requireAdmin();
   const db = await getDb();
   const unlinked = (await db.select().from(cards).where(and(isNull(cards.employeeId), eq(cards.isBillingAccount, false))).all()).length;
+  const toApprove = (await db.select({ id: reports.id }).from(reports).where(eq(reports.status, "enviado")).all()).length;
   const simulated = (await clockMode(db)) === "simulado";
   const day = date((await now(db)).toISOString());
 
@@ -45,25 +46,25 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             <span className="head text-lg text-ink">aexpenses</span>
           </Link>
 
-          <nav aria-label="Painel" className="hidden lg:block">
-            <SidebarNav unlinked={unlinked} />
+          <nav aria-label="Painel" className="hidden xl:block">
+            <SidebarNav unlinked={unlinked} toApprove={toApprove} />
           </nav>
 
-          <div className="ml-auto hidden items-center gap-4 lg:flex">
+          <div className="ml-auto hidden items-center gap-3 xl:flex">
             {simulated && <PilotClock day={day} />}
             <form action={logout}>
               <button type="submit" className="link font-display text-sm lowercase text-muted" title={user.name}>sair</button>
             </form>
           </div>
 
-          <details className="group relative ml-auto lg:hidden">
+          <details className="group relative ml-auto xl:hidden">
             <summary className="btn-ghost list-none px-4 [&::-webkit-details-marker]:hidden">
               <Menu size={18} aria-hidden="true" /> menu
-              {unlinked > 0 && <span className="rounded-pill bg-accent px-1.5 text-[11px] leading-5 text-accent-ink">{unlinked}</span>}
+              {unlinked + toApprove > 0 && <span className="rounded-pill bg-accent px-1.5 text-[11px] leading-5 text-accent-ink">{unlinked + toApprove}</span>}
             </summary>
             <div className="well absolute right-0 top-12 z-[var(--z-dropdown)] w-72 p-3 shadow-card">
               <nav aria-label="Painel">
-                <SidebarNav unlinked={unlinked} stacked />
+                <SidebarNav unlinked={unlinked} toApprove={toApprove} stacked />
               </nav>
               {simulated && (
                 <div className="mt-3 border-t border-rule pt-3">

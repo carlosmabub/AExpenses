@@ -1,8 +1,9 @@
-import { and, eq, inArray, isNull, sql } from "drizzle-orm";
+import { and, eq, inArray, isNotNull, isNull, sql } from "drizzle-orm";
 import type { Db, DbLike } from "@/db";
-import { cards, categories, classifications, employees, importBatches, transactions } from "@/db/schema";
+import { cards, categories, employees, expenses, importBatches, transactions } from "@/db/schema";
 import { cardFingerprint, cardLast4 } from "@/lib/card-fingerprint";
-import { addHours, clockMode, dailyFileAvailability, deadlineHours, now, setClock, simulatedNow } from "@/lib/clock";
+import { clockMode, dailyFileAvailability, now, setClock, simulatedNow } from "@/lib/clock";
+import { expenseDeadline } from "@/lib/status";
 import { normalizeMcc, suggestCategory } from "@/lib/mcc";
 import { checkBvk3, parseBvk3 } from "./parser";
 import { entryKind } from "./codes";
@@ -53,7 +54,6 @@ export async function importBvk3(db: Db, options: ImportOptions): Promise<Import
 
   const simulated = (await clockMode(db)) === "simulado";
   const importTime = await now(db);
-  const hours = await deadlineHours(db);
   const activeCategories = await db.select().from(categories).all();
   const employeesByHolder = new Map(
     (await db.select().from(employees).all())
@@ -152,25 +152,45 @@ export async function importBvk3(db: Db, options: ImportOptions): Promise<Import
         authorizationCode: entry.authorizationCode,
         suggestedCategoryId: suggested?.id ?? null,
         availableAt: availableAt.toISOString(),
-        dueAt: addHours(availableAt, hours).toISOString(),
+        dueAt: expenseDeadline(entry.purchaseDate, availableAt).toISOString(),
       });
     }
 
-    const insertedIds: number[] = [];
+    const inserted: (typeof transactions.$inferSelect)[] = [];
     for (let i = 0; i < rows.length; i += INSERT_CHUNK) {
-      const inserted = await tx
-        .insert(transactions)
-        .values(rows.slice(i, i + INSERT_CHUNK))
-        .onConflictDoNothing()
-        .returning({ id: transactions.id })
-        .all();
-      insertedIds.push(...inserted.map((r) => r.id));
+      inserted.push(
+        ...(await tx
+          .insert(transactions)
+          .values(rows.slice(i, i + INSERT_CHUNK))
+          .onConflictDoNothing()
+          .returning()
+          .all()),
+      );
     }
-    base.newTransactions = insertedIds.length;
-    base.duplicateTransactions = rows.length - insertedIds.length;
+    const insertedIds = inserted.map((t) => t.id);
+    base.newTransactions = inserted.length;
+    base.duplicateTransactions = rows.length - inserted.length;
 
-    // Parcelas novas de compras já classificadas herdam a classificação
-    if (insertedIds.length) await inheritGroupClassifications(tx, insertedIds);
+    // Cada compra nova vira uma despesa do dono do cartão
+    const expenseRows = inserted.map((t) => ({
+      transactionId: t.id,
+      source: "cartao" as const,
+      kind: t.kind,
+      paymentMethod: "cartao" as const,
+      amountCents: t.amountCents,
+      purchaseDate: t.purchaseDate,
+      merchant: t.merchant,
+      city: t.city,
+      suggestedCategoryId: t.suggestedCategoryId,
+      availableAt: t.availableAt,
+      dueAt: t.dueAt,
+    }));
+    for (let i = 0; i < expenseRows.length; i += INSERT_CHUNK) {
+      await tx.insert(expenses).values(expenseRows.slice(i, i + INSERT_CHUNK)).run();
+    }
+
+    // Parcelas novas de compras já preenchidas herdam o preenchimento
+    if (insertedIds.length) await inheritGroupExpenses(tx, insertedIds);
 
     await tx
       .update(importBatches)
@@ -195,26 +215,36 @@ export async function importBvk3(db: Db, options: ImportOptions): Promise<Import
   });
 }
 
-async function inheritGroupClassifications(db: DbLike, transactionIds: number[]): Promise<void> {
+async function inheritGroupExpenses(db: DbLike, transactionIds: number[]): Promise<void> {
   const fresh = await db
-    .select({ id: transactions.id, groupKey: transactions.groupKey })
-    .from(transactions)
+    .select({ expenseId: expenses.id, groupKey: transactions.groupKey })
+    .from(expenses)
+    .innerJoin(transactions, eq(transactions.id, expenses.transactionId))
     .where(inArray(transactions.id, transactionIds))
     .all();
   const groupKeys = [...new Set(fresh.map((t) => t.groupKey))];
   const sources = await db
-    .select({ c: classifications, groupKey: transactions.groupKey })
-    .from(classifications)
-    .innerJoin(transactions, eq(transactions.id, classifications.transactionId))
-    .where(and(inArray(transactions.groupKey, groupKeys), isNull(classifications.inheritedFromId)))
+    .select({ e: expenses, groupKey: transactions.groupKey })
+    .from(expenses)
+    .innerJoin(transactions, eq(transactions.id, expenses.transactionId))
+    .where(and(inArray(transactions.groupKey, groupKeys), isNotNull(expenses.savedAt), isNull(expenses.inheritedFromId)))
     .all();
-  if (!sources.length) return;
-  const byGroup = new Map(sources.map((s) => [s.groupKey, s.c]));
-  const copies = fresh.flatMap((t) => {
-    const source = byGroup.get(t.groupKey);
-    if (!source) return [];
-    const { id: sourceId, transactionId: _ignored, ...rest } = source;
-    return [{ ...rest, transactionId: t.id, inheritedFromId: sourceId }];
-  });
-  if (copies.length) await db.insert(classifications).values(copies).onConflictDoNothing().run();
+  const byGroup = new Map(sources.map((s) => [s.groupKey, s.e]));
+  for (const f of fresh) {
+    const source = byGroup.get(f.groupKey);
+    if (!source || source.id === f.expenseId) continue;
+    await db
+      .update(expenses)
+      .set({
+        categoryId: source.categoryId,
+        description: source.description,
+        costCenter: source.costCenter,
+        receiptPath: source.receiptPath,
+        receiptMime: source.receiptMime,
+        savedAt: source.savedAt,
+        inheritedFromId: source.id,
+      })
+      .where(eq(expenses.id, f.expenseId))
+      .run();
+  }
 }

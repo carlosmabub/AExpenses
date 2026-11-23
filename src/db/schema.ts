@@ -60,6 +60,8 @@ export const categories = sqliteTable("categories", {
   mccs: text("mccs").notNull().default(""),
   active: integer("active", { mode: "boolean" }).notNull().default(true),
   sortOrder: integer("sort_order").notNull().default(0),
+  /** Política: exige foto do comprovante para salvar a despesa */
+  requiresReceipt: integer("requires_receipt", { mode: "boolean" }).notNull().default(true),
 });
 
 export const transactions = sqliteTable(
@@ -106,6 +108,7 @@ export const transactions = sqliteTable(
   ],
 );
 
+/** Legado do primeiro piloto: substituída por expenses (migração 0002 copia os dados). */
 export const classifications = sqliteTable("classifications", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   transactionId: integer("transaction_id")
@@ -125,6 +128,84 @@ export const classifications = sqliteTable("classifications", {
   classifiedAt: text("classified_at").notNull(),
 });
 
+/** Relatório de despesas: o funcionário agrupa despesas e envia para aprovação. */
+export const reports = sqliteTable(
+  "reports",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    employeeId: integer("employee_id")
+      .notNull()
+      .references(() => employees.id),
+    name: text("name").notNull(),
+    costCenter: text("cost_center").notNull().default(""),
+    notes: text("notes").notNull().default(""),
+    status: text("status", { enum: ["aberto", "enviado", "aprovado"] }).notNull().default("aberto"),
+    submittedAt: text("submitted_at"),
+    approvedAt: text("approved_at"),
+    createdAt: createdAt(),
+  },
+  (t) => [index("reports_employee").on(t.employeeId)],
+);
+
+/** Dinheiro adiantado ao funcionário (ex.: antes de uma viagem), acertado num relatório. */
+export const advances = sqliteTable("advances", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  employeeId: integer("employee_id")
+    .notNull()
+    .references(() => employees.id),
+  amountCents: integer("amount_cents").notNull(),
+  date: text("date").notNull(),
+  description: text("description").notNull(),
+  reportId: integer("report_id").references(() => reports.id),
+  createdBy: integer("created_by").references(() => employees.id),
+  createdAt: createdAt(),
+});
+
+/**
+ * Despesa: o que o funcionário vê e preenche. Compras do cartão vêm do arquivo do banco
+ * (transactionId); despesas manuais (dinheiro, adiantamento) são lançadas no app.
+ * O dono de uma compra do cartão é o funcionário vinculado ao cartão (cards.employeeId);
+ * employeeId só é preenchido nas manuais.
+ */
+export const expenses = sqliteTable(
+  "expenses",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    transactionId: integer("transaction_id")
+      .unique()
+      .references(() => transactions.id),
+    employeeId: integer("employee_id").references(() => employees.id),
+    source: text("source", { enum: ["cartao", "manual"] }).notNull(),
+    kind: text("kind", { enum: ["compra", "saque", "estorno"] }).notNull().default("compra"),
+    paymentMethod: text("payment_method", { enum: ["cartao", "dinheiro", "adiantamento"] }).notNull(),
+    amountCents: integer("amount_cents").notNull(),
+    purchaseDate: text("purchase_date"),
+    merchant: text("merchant").notNull(),
+    city: text("city").notNull().default(""),
+    categoryId: integer("category_id").references(() => categories.id),
+    suggestedCategoryId: integer("suggested_category_id").references(() => categories.id),
+    description: text("description").notNull().default(""),
+    costCenter: text("cost_center").notNull().default(""),
+    receiptPath: text("receipt_path"),
+    receiptMime: text("receipt_mime"),
+    reportId: integer("report_id").references(() => reports.id),
+    /** Quando o funcionário salvou a despesa completa (tipo, descrição, comprovante) */
+    savedAt: text("saved_at"),
+    /** Herdada de outra parcela da mesma compra */
+    inheritedFromId: integer("inherited_from_id"),
+    reviewStatus: text("review_status", { enum: ["aprovada", "devolvida"] }),
+    reviewComment: text("review_comment").notNull().default(""),
+    reviewedAt: text("reviewed_at"),
+    reviewedBy: integer("reviewed_by").references(() => employees.id),
+    /** Quando a despesa aparece para o funcionário (ISO) */
+    availableAt: text("available_at").notNull(),
+    /** Prazo para estar num relatório enviado (ISO); depois disso, "ignorada" */
+    dueAt: text("due_at").notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [index("expenses_employee").on(t.employeeId), index("expenses_report").on(t.reportId)],
+);
+
 /** Configurações chave/valor (relógio do piloto, prazo etc.) */
 export const settings = sqliteTable("settings", {
   key: text("key").primaryKey(),
@@ -137,3 +218,6 @@ export type Category = typeof categories.$inferSelect;
 export type Transaction = typeof transactions.$inferSelect;
 export type Classification = typeof classifications.$inferSelect;
 export type ImportBatch = typeof importBatches.$inferSelect;
+export type Report = typeof reports.$inferSelect;
+export type Advance = typeof advances.$inferSelect;
+export type Expense = typeof expenses.$inferSelect;
