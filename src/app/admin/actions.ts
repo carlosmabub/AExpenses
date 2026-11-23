@@ -7,7 +7,7 @@ import { advances, cards, categories, classifications, employees, expenses, impo
 import { requireAdmin } from "@/lib/auth";
 import { importBvk3, type ImportResult } from "@/lib/bvk3/import";
 import { decodeBvk3 } from "@/lib/bvk3/parser";
-import { advanceClock, setSetting } from "@/lib/clock";
+import { advanceClock, DAILY_FILE_HOUR_UTC, setClock, setSetting } from "@/lib/clock";
 import { hashPassword } from "@/lib/password";
 import { PILOT_USER } from "@/db/seed";
 import { approveRemaining, createAdvance, reviewExpense } from "@/lib/reports";
@@ -31,6 +31,16 @@ export async function importFile(_: ImportState, form: FormData): Promise<Import
   return { result, fileName: file.name };
 }
 
+/** Leva o relógio do piloto para uma data digitada, às 08:00 de Brasília (quando o arquivo diário chega). */
+export async function setClockDate(form: FormData): Promise<void> {
+  await requireAdmin();
+  const value = String(form.get("date") ?? "");
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return;
+  const [y, m, d] = value.split("-").map(Number);
+  await setClock(await getDb(), new Date(Date.UTC(y, m - 1, d, DAILY_FILE_HOUR_UTC)));
+  refresh();
+}
+
 export async function moveClock(form: FormData): Promise<void> {
   await requireAdmin();
   await advanceClock(await getDb(), Number(form.get("days") ?? 1));
@@ -40,13 +50,6 @@ export async function moveClock(form: FormData): Promise<void> {
 export async function setClockMode(form: FormData): Promise<void> {
   await requireAdmin();
   await setSetting(await getDb(), "clock_mode", form.get("mode") === "real" ? "real" : "simulado");
-  refresh();
-}
-
-export async function setDeadline(form: FormData): Promise<void> {
-  await requireAdmin();
-  const hours = Number(form.get("hours"));
-  if (Number.isFinite(hours) && hours > 0 && hours <= 24 * 30) await setSetting(await getDb(), "deadline_hours", String(Math.round(hours)));
   refresh();
 }
 

@@ -1,10 +1,10 @@
 import { desc } from "drizzle-orm";
 import { getDb } from "@/db";
 import { importBatches } from "@/db/schema";
-import { clockMode, deadlineHours, now } from "@/lib/clock";
+import { clockMode, now } from "@/lib/clock";
 import { date, dateTime, longDay, money } from "@/lib/format";
 import { PageTitle } from "@/components/page-title";
-import { moveClock, resetPilot, setClockMode, setDeadline } from "../actions";
+import { moveClock, resetPilot, setClockDate, setClockMode } from "../actions";
 import { ImportForm } from "./import-form";
 
 export default async function ImportPage() {
@@ -54,6 +54,13 @@ export default async function ImportPage() {
             {simulated && (
               <>
                 <p className="mt-4 text-ink">{longDay(await now(db))}</p>
+                <form action={setClockDate} className="mt-3 flex items-end gap-2">
+                  <div className="flex-1">
+                    <label className="label" htmlFor="clock-date">ir para a data</label>
+                    <input id="clock-date" type="date" name="date" required defaultValue={(await now(db)).toISOString().slice(0, 10)} className="input" />
+                  </div>
+                  <button type="submit" className="btn-ghost">ir</button>
+                </form>
                 <div className="mt-3 flex flex-wrap gap-2">
                   {[1, 2, 7, 30].map((d) => (
                     <form key={d} action={moveClock}>
@@ -70,17 +77,10 @@ export default async function ImportPage() {
             </form>
           </section>
 
-          <form action={setDeadline} className="border-t border-rule pt-8">
-            <h2 className="head text-xl text-ink">prazo para classificar</h2>
-            <p className="mt-2 text-sm text-ink-2">Depois do prazo a despesa vira ignorada e aparece para o financeiro. Vale para as próximas importações.</p>
-            <div className="mt-4 flex items-end gap-3">
-              <div className="w-28">
-                <label className="label" htmlFor="hours">horas</label>
-                <input className="input tabular-nums" id="hours" type="number" name="hours" min={1} max={720} defaultValue={await deadlineHours(db)} />
-              </div>
-              <button type="submit" className="btn-ghost">salvar</button>
-            </div>
-          </form>
+          <section className="border-t border-rule pt-8" aria-labelledby="prazo">
+            <h2 id="prazo" className="head text-xl text-ink">prazo</h2>
+            <p className="mt-2 text-sm text-ink-2">A despesa precisa estar num relatório enviado até o fim do mês da compra, às 23:59, com no mínimo 5 dias. Depois disso ela aparece como ignorada.</p>
+          </section>
 
           <form action={resetPilot} className="border-t border-rule pt-8">
             <h2 className="head text-xl text-ink">recomeçar a demonstração</h2>
