@@ -17,7 +17,7 @@ export default async function ImportPage() {
       <PageTitle title="importar arquivo" subtitle="Cada importação é conferida com os totais do próprio arquivo do banco." />
       <div className="grid gap-12 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
         <div className="min-w-0 space-y-12">
-          <ImportForm />
+          <ImportForm pilot={simulated} />
           <section aria-labelledby="historico">
             <h2 id="historico" className="head text-xl text-ink">histórico</h2>
             <div className="mt-4 overflow-x-auto">

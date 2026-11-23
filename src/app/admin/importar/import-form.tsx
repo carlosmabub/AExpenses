@@ -5,7 +5,7 @@ import { FileText } from "lucide-react";
 import { importFile, type ImportState } from "../actions";
 import { money } from "@/lib/format";
 
-export function ImportForm() {
+export function ImportForm({ pilot }: { pilot: boolean }) {
   const [state, action, pending] = useActionState<ImportState, FormData>(importFile, null);
   const r = state?.result;
 
@@ -23,6 +23,10 @@ export function ImportForm() {
           <input id="bvk3" type="file" name="file" accept=".txt,text/plain" required className="min-w-0 flex-1 text-sm text-ink-2 file:mr-3 file:rounded-pill file:border-0 file:bg-paper file:px-4 file:py-2 file:font-display file:text-sm file:lowercase file:text-ink" />
           <button type="submit" className="btn-primary" disabled={pending} aria-busy={pending}>{pending ? "importando…" : "importar"}</button>
         </div>
+        <label className="mt-4 flex items-start gap-2 text-sm text-ink-2">
+          <input type="checkbox" name="singleCard" value="1" defaultChecked={pilot} className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--color-ink)]" />
+          Piloto: considerar todos os gastos do arquivo como do cartão do Carlos.
+        </label>
         <p className="mt-2 min-h-[1lh] text-sm text-error" aria-live="polite">{state?.error}</p>
       </form>
 
@@ -55,6 +59,7 @@ export function ImportForm() {
             <form action={action} className="mt-4 flex flex-wrap items-center gap-3 text-sm">
               <input type="file" name="file" accept=".txt,text/plain" required aria-label="Arquivo BVK3" className="min-w-0 text-ink-2" />
               <input type="hidden" name="force" value="1" />
+              {pilot && <input type="hidden" name="singleCard" value="1" />}
               <button type="submit" className="btn-danger" disabled={pending}>importar mesmo com divergência</button>
             </form>
           )}

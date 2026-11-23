@@ -16,6 +16,9 @@ export const DEMO_EMPLOYEES = [
   // Portador 09 fica sem cadastro de propósito: mostra a fila de "cartões não vinculados"
 ];
 
+/** Usuário da apresentação do piloto: recebe todos os gastos do arquivo de exemplo num cartão só. */
+export const PILOT_USER = { name: "Carlos", email: "carlos@empresa.com.br", costCenter: "4383", holder: "CARLOS" };
+
 export const DEMO_ADMIN = { name: "Financeiro", email: "financeiro@empresa.com.br", password: "admin123" };
 export const DEMO_EMPLOYEE_PASSWORD = "123456";
 
@@ -47,6 +50,21 @@ export async function seedIfEmpty(db: Db): Promise<void> {
   await db
     .insert(employees)
     .values(DEMO_EMPLOYEES.map((e) => ({ name: e.name, email: emailFor(e.name), passwordHash: employeeHash, costCenter: e.costCenter, cardHolderName: e.holder })))
+    .onConflictDoNothing()
+    .run();
+}
+
+/** Garante os usuários do piloto também num banco que já tinha seed (ex.: o Turso da Vercel). */
+export async function ensureDemoUsers(db: Db): Promise<void> {
+  await db
+    .insert(employees)
+    .values({
+      name: PILOT_USER.name,
+      email: PILOT_USER.email,
+      passwordHash: hashPassword(DEMO_EMPLOYEE_PASSWORD),
+      costCenter: PILOT_USER.costCenter,
+      cardHolderName: PILOT_USER.holder,
+    })
     .onConflictDoNothing()
     .run();
 }

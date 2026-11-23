@@ -9,6 +9,7 @@ import { importBvk3, type ImportResult } from "@/lib/bvk3/import";
 import { decodeBvk3 } from "@/lib/bvk3/parser";
 import { advanceClock, setSetting } from "@/lib/clock";
 import { hashPassword } from "@/lib/password";
+import { PILOT_USER } from "@/db/seed";
 import { approveRemaining, createAdvance, reviewExpense } from "@/lib/reports";
 import { parseMoney } from "@/lib/format";
 import { CATEGORY_ICONS } from "@/components/category-icon";
@@ -25,7 +26,7 @@ export async function importFile(_: ImportState, form: FormData): Promise<Import
   if (!(file instanceof File) || file.size === 0) return { error: "Escolha o arquivo BVK3 enviado pelo banco." };
   if (file.size > 20 * 1024 * 1024) return { error: "Arquivo muito grande (máx. 20 MB)." };
   const content = decodeBvk3(new Uint8Array(await file.arrayBuffer()));
-  const result = await importBvk3(await getDb(), { fileName: file.name, content, importedBy: admin.id, force: form.get("force") === "1" });
+  const result = await importBvk3(await getDb(), { fileName: file.name, content, importedBy: admin.id, force: form.get("force") === "1", singleCardHolder: form.get("singleCard") === "1" ? PILOT_USER.holder : undefined });
   refresh();
   return { result, fileName: file.name };
 }

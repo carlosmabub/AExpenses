@@ -32,10 +32,13 @@ Na primeira execução o banco SQLite é criado em `data/` com um admin e funcio
 O banco ainda vai confirmar se o arquivo BVK3 sai diariamente. Para demonstrar o fluxo com o exemplo mensal
 (`tests/fixtures/BVK3EXEMPLOMENSAL.txt`):
 
-1. Entre como **Financeiro** → *Importar arquivo* → envie o arquivo de exemplo.
+1. Entre como **Financeiro** → *Importar arquivo* → envie o arquivo de exemplo. Com a caixa "Piloto: considerar
+   todos os gastos do arquivo como do cartão do Carlos" marcada (padrão no modo simulado), todas as compras do arquivo
+   viram do cartão do usuário **Carlos** (carlos@empresa.com.br, senha 123456). Desmarque para ver os gastos divididos
+   entre os portadores fictícios.
 2. No modo simulado, cada compra chega ao app no dia seguinte ao lançamento (D+1, 08:00). Use o
    **relógio do piloto** (+1d, +2d, +7d) para avançar os dias.
-3. Entre como um funcionário (ex.: **Diego Rocha**) num celular ou janela estreita, crie um relatório pelo + e lance nele as compras.
+3. Entre como **Carlos** num celular ou janela estreita, crie um relatório pelo + e lance nele as compras.
 4. O que não entrar num relatório enviado até o fim do mês vira **ignorada** e aparece no dashboard do financeiro.
 5. *Exportar Excel* gera a planilha da prestação de contas.
 
@@ -112,6 +115,9 @@ Localmente nada disso é necessário: sem essas variáveis o app usa `data/` com
    `tests/fixtures/BVK3EXEMPLOMENSAL.txt`. As tabelas e os usuários de demonstração são criados sozinhos no primeiro acesso.
 
 A cada `git push` a Vercel publica a versão nova.
+
+Se a base da Vercel já tiver o arquivo importado do jeito antigo (um cartão por portador), use *Importar arquivo →
+Apagar dados do piloto* e importe de novo com a caixa do Carlos marcada.
 
 > **Atenção**: este ambiente é de teste, com login rápido de demonstração ligado e senhas conhecidas. Antes de usar
 > com dados reais, defina `AEX_DEMO=0`, troque as senhas e não use o arquivo real do banco num ambiente público.

@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 import { createDb, type Db } from "@/db";
 import { cards, categories, employees, expenses, transactions } from "@/db/schema";
-import { seedIfEmpty } from "@/db/seed";
+import { ensureDemoUsers, seedIfEmpty } from "@/db/seed";
 import { importBvk3 } from "@/lib/bvk3/import";
 import { advanceClock, now, setClock } from "@/lib/clock";
 import { createManualExpense, listAdminExpenses, listEmployeeExpenses, saveExpense } from "@/lib/expenses";
@@ -83,6 +83,24 @@ describe("importação BVK3", () => {
     const visible = await listEmployeeExpenses(db, diego);
     expect(visible.length).toBeGreaterThan(before);
     for (const e of visible) expect(new Date(e.e.availableAt).getTime()).toBeLessThanOrEqual(at.getTime());
+  });
+});
+
+describe("piloto: todos os gastos num cartão só", () => {
+  it("o Carlos recebe todas as compras do arquivo", async () => {
+    const db = await createDb(":memory:");
+    await seedIfEmpty(db);
+    await ensureDemoUsers(db);
+    const result = await importBvk3(db, { fileName: "exemplo.txt", content: sample, singleCardHolder: "CARLOS" });
+    expect(result).toMatchObject({ imported: true, checkOk: true, newTransactions: 82, unlinkedCards: [] });
+    const employeeCards = (await db.select().from(cards).all()).filter((c) => !c.isBillingAccount);
+    expect(employeeCards).toHaveLength(1);
+    expect(employeeCards[0]).toMatchObject({ holderName: "CARLOS", last4: "1000" });
+    await advanceClock(db, 60);
+    const carlos = await employeeId(db, "Carlos");
+    const mine = await listEmployeeExpenses(db, carlos);
+    expect(mine).toHaveLength(82);
+    expect(new Set(mine.map((e) => e.e.city))).toEqual(new Set(["BEBEDOURO", "CAMPINAS", "SAO PAULO", "S JOSE R PRET", "BARRETOS", "RIO DE JANEIR", "SAO JOSE DO R"]));
   });
 });
 

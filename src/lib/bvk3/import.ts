@@ -14,6 +14,11 @@ export interface ImportOptions {
   importedBy?: number;
   /** Importa mesmo que a conferência com o trailer falhe */
   force?: boolean;
+  /**
+   * Piloto: junta todos os cartões do arquivo (menos a conta da empresa) num cartão só,
+   * com este nome de portador, para um usuário de demonstração ver todos os gastos.
+   */
+  singleCardHolder?: string;
 }
 
 export interface ImportResult {
@@ -61,6 +66,8 @@ export async function importBvk3(db: Db, options: ImportOptions): Promise<Import
       .map((e) => [normalizeName(e.cardHolderName), e.id]),
   );
   const companyName = normalizeName(file.header?.companyName ?? "");
+  // A conferência acima vale sobre o arquivo como veio; o remapeamento do piloto vem depois
+  if (options.singleCardHolder) mergeCards(file, companyName, options.singleCardHolder);
 
   return db.transaction(async (tx) => {
     const batch = await tx
@@ -247,4 +254,18 @@ async function inheritGroupExpenses(db: DbLike, transactionIds: number[]): Promi
       .where(eq(expenses.id, f.expenseId))
       .run();
   }
+}
+
+/** Piloto: todos os cartões de funcionário viram o primeiro deles, com o portador informado. */
+function mergeCards(file: ReturnType<typeof parseBvk3>, companyName: string, holderName: string): void {
+  const isCompany = (name: string) => !!companyName && normalizeName(name).startsWith(companyName);
+  const employeeCards = file.cards.filter((c) => !isCompany(c.holderName));
+  if (!employeeCards.length) return;
+  // Um dígito a mais na frente: mesmos 4 finais, mas uma impressão digital própria,
+  // para não se misturar com o cartão real desse portador se ele já tiver sido importado
+  const target = `9${employeeCards[0].cardNumber}`;
+  const merged = new Set(employeeCards.map((c) => c.cardNumber));
+  const totalBrlCents = employeeCards.reduce((sum, c) => sum + c.totalBrlCents, 0);
+  file.cards = [...file.cards.filter((c) => isCompany(c.holderName)), { ...employeeCards[0], cardNumber: target, holderName, totalBrlCents }];
+  for (const entry of file.entries) if (merged.has(entry.cardNumber)) entry.cardNumber = target;
 }

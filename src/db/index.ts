@@ -5,7 +5,7 @@ import type { BaseSQLiteDatabase } from "drizzle-orm/sqlite-core";
 import fs from "node:fs";
 import path from "node:path";
 import * as schema from "./schema";
-import { seedIfEmpty } from "./seed";
+import { ensureDemoUsers, seedIfEmpty } from "./seed";
 
 export type Db = LibSQLDatabase<typeof schema>;
 /** Banco ou transação aberta: as funções de domínio aceitam os dois. */
@@ -41,6 +41,7 @@ export function getDb(): Promise<Db> {
     globalForDb.__aexDb = (async () => {
       const db = await createDb(databaseUrl(), process.env.TURSO_AUTH_TOKEN);
       await seedIfEmpty(db);
+      await ensureDemoUsers(db);
       return db;
     })().catch((error) => {
       globalForDb.__aexDb = undefined;
