@@ -9,7 +9,7 @@ const hasLogo = LOGO_FILE !== null;
 
 /**
  * O cartão Visa Empresarial Bradesco, nas proporções do cartão físico (85,6 × 54 mm):
- * marca no canto superior esquerdo, a marca grande e apagada ao fundo, chip e aproximação
+ * marca no canto superior esquerdo, a marca grande e apagada ao fundo, no centro, chip e aproximação
  * no meio, número, titular e empresa embaixo, Visa Empresarial no canto inferior direito.
  */
 export function CorporateCard({ last4, holder, company }: { last4: string; holder: string; company: string }) {
@@ -20,11 +20,11 @@ export function CorporateCard({ last4, holder, company }: { last4: string; holde
     >
       {/* marca grande ao fundo, no centro, só decoração */}
       {hasLogo ? (
-        <img src={`/${LOGO_FILE}`} alt="" aria-hidden="true" className="pointer-events-none absolute left-[38%] top-[8%] h-[95%] w-auto opacity-[0.08] [filter:brightness(0)_invert(1)]" />
+        <img src={`/${LOGO_FILE}`} alt="" aria-hidden="true" className="pointer-events-none absolute left-1/2 top-1/2 h-[85%] w-auto -translate-x-1/2 -translate-y-1/2 opacity-[0.08] [filter:brightness(0)_invert(1)]" />
       ) : (
         <>
-          <span aria-hidden="true" className="pointer-events-none absolute left-[40%] top-[-6%] h-[78cqw] w-[78cqw] rounded-pill border-[7cqw] border-white/[0.06]" />
-          <span aria-hidden="true" className="pointer-events-none absolute left-[55%] top-[22%] h-[40cqw] w-[40cqw] rounded-pill border-[5cqw] border-white/[0.05]" />
+          <span aria-hidden="true" className="pointer-events-none absolute left-1/2 top-1/2 h-[62cqw] w-[62cqw] -translate-x-1/2 -translate-y-1/2 rounded-pill border-[6cqw] border-white/[0.06]" />
+          <span aria-hidden="true" className="pointer-events-none absolute left-1/2 top-1/2 h-[30cqw] w-[30cqw] -translate-x-1/2 -translate-y-1/2 rounded-pill border-[4cqw] border-white/[0.05]" />
         </>
       )}
 
