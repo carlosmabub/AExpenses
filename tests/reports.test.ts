@@ -42,7 +42,7 @@ describe("relatórios, aprovação e adiantamentos", () => {
     expect(await moveExpensesToReport(db, { employeeId: diego, expenseIds: ids, reportId })).toBe(3);
     expect((await getExpense(db, ids[0]))!.status).toBe("em_relatorio");
 
-    await expect(submitReport(db, { reportId, employeeId: diego })).rejects.toThrow(/precisam de tipo, descrição e comprovante/);
+    await expect(submitReport(db, { reportId, employeeId: diego })).rejects.toThrow(/precisam de tipo e comprovante/);
     await fillAll(ids);
     await submitReport(db, { reportId, employeeId: diego });
     expect((await getReport(db, reportId))!.stage).toBe("em_aprovacao");

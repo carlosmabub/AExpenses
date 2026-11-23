@@ -55,7 +55,7 @@ export default async function EmployeeHome() {
           </SectionCard>
         )}
 
-        <SectionCard title="Despesas sem relatório" count={withoutReport.length} href="/app/despesas" open={!returned.length}>
+        <SectionCard title="Despesas sem relatório" count={withoutReport.length} href="/app/despesas">
           {withoutReport.length === 0 ? (
             <p className="px-4 py-4 text-sm text-muted">Nenhuma despesa sem relatório.</p>
           ) : (
@@ -68,7 +68,7 @@ export default async function EmployeeHome() {
           )}
         </SectionCard>
 
-        <SectionCard title="Relatórios pendentes" count={reports.length} href="/app/relatorios" open={!!reports.length}>
+        <SectionCard title="Relatórios pendentes" count={reports.length} href="/app/relatorios">
           {reports.length === 0 ? (
             <p className="px-4 py-4 text-sm text-muted">Nenhum relatório pendente. Crie um pelo botão +.</p>
           ) : (

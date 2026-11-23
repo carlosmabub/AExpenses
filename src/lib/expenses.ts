@@ -123,7 +123,6 @@ async function validateCommon(
 ) {
   const category = await db.select().from(categories).where(eq(categories.id, input.categoryId)).get();
   if (!category || !category.active) throw new ExpenseError("Escolha o tipo da despesa.");
-  if (!input.description.trim()) throw new ExpenseError("Descreva do que se trata a despesa.");
   if (category.requiresReceipt && !input.hasReceipt) {
     throw new ExpenseError(`Política de despesa: é necessário anexar a foto do recibo para despesas do tipo ${category.name}.`);
   }
@@ -212,7 +211,8 @@ export interface ManualExpenseInput extends ReceiptInput {
   employeeId: number;
   amountCents: number;
   purchaseDate: string;
-  merchant: string;
+  /** Onde foi; quando vazio, a despesa leva o nome do tipo */
+  merchant?: string;
   paymentMethod: "dinheiro" | "adiantamento";
   categoryId: number;
   description: string;
@@ -224,11 +224,10 @@ export interface ManualExpenseInput extends ReceiptInput {
 export async function createManualExpense(db: Db, input: ManualExpenseInput): Promise<number> {
   if (!Number.isFinite(input.amountCents) || input.amountCents <= 0) throw new ExpenseError("Informe o valor da despesa.");
   if (!/^\d{4}-\d{2}-\d{2}$/.test(input.purchaseDate)) throw new ExpenseError("Informe a data da despesa.");
-  if (!input.merchant.trim()) throw new ExpenseError("Informe onde foi a despesa.");
   if (input.paymentMethod !== "dinheiro" && input.paymentMethod !== "adiantamento") throw new ExpenseError("Escolha a forma de pagamento.");
   const at = await now(db);
   if (input.purchaseDate > at.toISOString().slice(0, 10)) throw new ExpenseError("A data não pode ser no futuro.");
-  await validateCommon(db, { ...input, hasReceipt: !!input.receiptPath });
+  const category = await validateCommon(db, { ...input, hasReceipt: !!input.receiptPath });
 
   const created = await db
     .insert(expenses)
@@ -239,7 +238,7 @@ export async function createManualExpense(db: Db, input: ManualExpenseInput): Pr
       paymentMethod: input.paymentMethod,
       amountCents: Math.round(input.amountCents),
       purchaseDate: input.purchaseDate,
-      merchant: input.merchant.trim(),
+      merchant: input.merchant?.trim() || category.name,
       categoryId: input.categoryId,
       description: input.description.trim(),
       costCenter: input.costCenter.trim(),

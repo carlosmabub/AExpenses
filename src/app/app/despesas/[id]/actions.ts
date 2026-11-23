@@ -59,7 +59,6 @@ export async function createManualExpenseAction(_: FormState, form: FormData): P
       employeeId: user.id,
       amountCents: parseMoney(String(form.get("amount") ?? "")),
       purchaseDate: String(form.get("purchaseDate") ?? ""),
-      merchant: String(form.get("merchant") ?? ""),
       paymentMethod: form.get("paymentMethod") === "adiantamento" ? "adiantamento" : "dinheiro",
       categoryId: Number(form.get("categoryId")),
       description: String(form.get("description") ?? ""),

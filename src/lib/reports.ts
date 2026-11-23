@@ -129,7 +129,7 @@ export async function submitReport(db: Db, input: { reportId: number; employeeId
   if (summary.report.status !== "aberto") throw new ExpenseError("Este relatório já foi enviado.");
   if (!summary.expenses.length) throw new ExpenseError("Adicione pelo menos uma despesa antes de enviar.");
   if (summary.incomplete) {
-    throw new ExpenseError(`${summary.incomplete} despesa${summary.incomplete > 1 ? "s ainda precisam" : " ainda precisa"} de tipo, descrição e comprovante.`);
+    throw new ExpenseError(`${summary.incomplete} despesa${summary.incomplete > 1 ? "s ainda precisam" : " ainda precisa"} de tipo e comprovante.`);
   }
   await db.update(reports).set({ status: "enviado", submittedAt: (await now(db)).toISOString() }).where(eq(reports.id, input.reportId)).run();
 }

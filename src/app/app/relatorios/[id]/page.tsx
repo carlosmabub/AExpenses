@@ -73,7 +73,7 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
               footer={
                 open ? (
                   <>
-                    <span className="text-error">{e.e.savedAt ? "" : "Falta tipo, observação ou comprovante"}</span>
+                    <span className="text-error">{e.e.savedAt ? "" : "Falta tipo ou comprovante"}</span>
                     <form action={removeExpenseAction}>
                       <input type="hidden" name="expenseId" value={e.e.id} />
                       <button type="submit" className="inline-flex min-h-9 items-center gap-1 rounded-pill px-2 text-muted hover:bg-paper-2 hover:text-ink">

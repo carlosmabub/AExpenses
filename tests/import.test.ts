@@ -187,6 +187,22 @@ describe("preenchimento da despesa", () => {
     expect(manual.status).toBe("sem_relatorio");
   });
 
+  it("despesa manual sem local e sem observação leva o nome do tipo", async () => {
+    const id = await createManualExpense(db, {
+      employeeId: diego,
+      amountCents: 3200,
+      purchaseDate: "2013-07-24",
+      paymentMethod: "dinheiro",
+      categoryId: await categoryId(db, "Alimentação"),
+      description: "",
+      costCenter: "4383",
+      ...RECEIPT,
+    });
+    const manual = (await listEmployeeExpenses(db, diego)).find((e) => e.e.id === id)!;
+    expect(manual.e).toMatchObject({ merchant: "Alimentação", description: "", amountCents: 3200 });
+    expect(manual.e.savedAt).not.toBeNull();
+  });
+
   it("parcela nova da mesma compra herda o preenchimento", async () => {
     const parcel5 = sample.split(/\r?\n/).find((l) => l.includes("BFSJP 35"))!;
     const bruno = await employeeId(db, "Bruno Lima");

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { startTransition, useActionState, useState } from "react";
-import { Building2, CalendarDays, Check, ChevronLeft, ChevronRight, Coins, CreditCard, FileText, Pencil, ReceiptText, Tags, Upload, Wallet, X } from "lucide-react";
+import { Building2, CalendarDays, Check, ChevronLeft, ChevronRight, CreditCard, FileText, Pencil, ReceiptText, Tags, Upload, Wallet, X } from "lucide-react";
 import type { FormState } from "@/app/app/despesas/[id]/actions";
 
 interface Option {
@@ -84,6 +84,7 @@ export function ExpenseForm(props: Props) {
   const [preview, setPreview] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
   const [dismissed, setDismissed] = useState<FormState>(null);
+  const [amount, setAmount] = useState("");
   const [categoryId, setCategoryId] = useState<string>(props.defaults.categoryId ? String(props.defaults.categoryId) : "");
   const category = props.categories.find((c) => String(c.id) === categoryId);
   const isNew = props.mode === "new";
@@ -143,20 +144,27 @@ export function ExpenseForm(props: Props) {
             {fileName ?? (props.hasReceipt ? "Comprovante anexado" : category && !category.requiresReceipt ? "Comprovante opcional" : "Toque para anexar o comprovante")}
           </p>
           {isNew ? (
-            <>
-              <label htmlFor="amount" className="visually-hidden">Valor em reais</label>
+            <label htmlFor="amount" className="figure mt-3 flex items-baseline justify-center gap-2 px-2 text-4xl">
+              <span aria-hidden="true">R$</span>
+              <span className="visually-hidden">Valor em reais</span>
               <input
                 id="amount"
                 name="amount"
                 inputMode="decimal"
                 required
-                placeholder="R$ 0,00"
+                placeholder="0,00"
                 autoComplete="off"
-                className="figure mt-3 w-full bg-transparent text-center text-4xl text-accent-ink placeholder:text-white/50 focus-visible:outline-2 focus-visible:outline-white"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value.replace(/[^\d.,]/g, ""))}
+                style={{ width: `${Math.max(4, amount.length)}ch` }}
+                className="border-b-2 border-white/25 bg-transparent text-left text-accent-ink outline-none placeholder:text-white/50 focus-visible:border-white"
               />
-            </>
+            </label>
           ) : (
-            <p className="figure mt-3 text-4xl">{props.view?.amountLabel}</p>
+            <>
+              <p className="figure mt-3 text-4xl">{props.view?.amountLabel}</p>
+              {props.view?.currency && props.view.currency !== "BRL" && <p className="mt-1 text-sm opacity-80">valor original {props.view.currency}</p>}
+            </>
           )}
         </div>
       </header>
@@ -194,19 +202,11 @@ export function ExpenseForm(props: Props) {
           )
         )}
 
-        {isNew ? (
-          <Row icon={Pencil} label="Onde foi" htmlFor="merchant">
-            <input id="merchant" name="merchant" required placeholder="Ex.: Táxi do aeroporto" className="row-control" />
-          </Row>
-        ) : (
+        {!isNew && (
           <Row icon={Pencil} label={props.view?.merchant ?? ""}>
             <span />
           </Row>
         )}
-
-        <Row icon={Coins} label="Moeda">
-          <span className="flex-1 text-right text-muted">{props.view?.currency ?? "BRL"}</span>
-        </Row>
 
         <SelectRow
           icon={Tags}
@@ -254,12 +254,11 @@ export function ExpenseForm(props: Props) {
           <p className="pt-3 text-sm text-muted">Prazo para entrar num relatório enviado: {props.view.deadline}.</p>
         )}
 
-        <label htmlFor="description" className="visually-hidden">Observações: do que se trata a despesa</label>
+        <label htmlFor="description" className="visually-hidden">Observações</label>
         <textarea
           id="description"
           name="description"
-          required
-          placeholder="Observações: do que se trata a despesa?"
+          placeholder="Observações (opcional)"
           defaultValue={props.defaults.description}
           className="well mt-4 block min-h-32 w-full resize-none border-0 p-4 text-ink placeholder:text-muted focus-visible:outline-2 focus-visible:outline-focus"
         />
