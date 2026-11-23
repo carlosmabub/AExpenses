@@ -1,4 +1,4 @@
-import { and, eq, inArray, isNotNull, isNull, sql } from "drizzle-orm";
+import { and, eq, inArray, isNotNull, isNull, like, sql } from "drizzle-orm";
 import type { Db, DbLike } from "@/db";
 import { cards, categories, employees, expenses, importBatches, transactions } from "@/db/schema";
 import { cardFingerprint, cardLast4 } from "@/lib/card-fingerprint";
@@ -112,7 +112,13 @@ export async function importBvk3(db: Db, options: ImportOptions): Promise<Import
       if (!row) {
         // O registro da conta da empresa traz o nome dela no campo do portador
         const isBillingAccount = !!companyName && normalizeName(card.holderName).startsWith(companyName);
-        row = await tx
+        // Cartão digitado no cadastro antes do arquivo chegar: o arquivo completa o registro reservado
+        const reserved = isBillingAccount
+          ? undefined
+          : await tx.select().from(cards).where(and(like(cards.fingerprint, "pending:%"), eq(cards.last4, cardLast4(card.cardNumber)))).get();
+        row = reserved
+          ? await tx.update(cards).set({ fingerprint, holderName: card.holderName, bankCostCenter: card.costCenter }).where(eq(cards.id, reserved.id)).returning().get()
+          : await tx
           .insert(cards)
           .values({
             fingerprint,

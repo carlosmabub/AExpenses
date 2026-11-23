@@ -38,7 +38,7 @@ export default async function PersonPage({ params, searchParams }: { params: Pro
 
       <PersonForm
         key={`${person.id}-${person.role}-${person.leaderId}`}
-        person={{ id: person.id, name: person.name, email: person.email, role: person.role, costCenter: person.costCenter, cardHolderName: person.cardHolderName, leaderId: person.leaderId, active: person.active }}
+        person={{ id: person.id, name: person.name, email: person.email, role: person.role, costCenter: person.costCenter, leaderId: person.leaderId, active: person.active }}
         {...data}
       />
       <PersonActions id={person.id} active={person.active} canDelete={!history && person.role !== "admin"} today={today.toISOString().slice(0, 10)} />

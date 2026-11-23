@@ -5,7 +5,7 @@ import type { PersonFormState } from "./actions";
 import { savePersonAction } from "./actions";
 
 export interface PersonFormProps {
-  person?: { id: number; name: string; email: string; role: string; costCenter: string; cardHolderName: string; leaderId: number | null; active: boolean };
+  person?: { id: number; name: string; email: string; role: string; costCenter: string; leaderId: number | null; active: boolean };
   leaders: { id: number; name: string }[];
   cards: { id: number; label: string; checked: boolean }[];
   candidates: { id: number; name: string; checked: boolean; leaderName: string | null }[];
@@ -54,28 +54,25 @@ export function PersonForm({ person, leaders, cards, candidates, costCenters }: 
             {leaders.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
           </select>
         </div>
-        <div className="sm:col-span-2">
-          <label className="label" htmlFor="p-holder">nome no cartão (como o banco envia)</label>
-          <input id="p-holder" name="cardHolderName" defaultValue={person?.cardHolderName} className="input" />
-          <p className="mt-1 text-sm text-muted">Cartões novos com esse nome são vinculados sozinhos na importação.</p>
-        </div>
       </div>
 
       <fieldset className="mt-8 border-t border-rule pt-5">
-        <legend className="head text-lg text-ink">cartões desta pessoa</legend>
-        {cards.length === 0 ? (
-          <p className="mt-2 text-sm text-muted">Nenhum cartão disponível. Importe o arquivo do banco para listar os cartões.</p>
-        ) : (
-          <ul className="mt-2 grid gap-x-6 sm:grid-cols-2">
+        <legend className="head text-lg text-ink">cartão</legend>
+        {cards.length > 0 && (
+          <ul className="mt-2">
             {cards.map((c) => (
               <li key={c.id}>
                 <label className="flex min-h-11 items-center gap-3 text-ink">
-                  <input type="checkbox" name="cardIds" value={c.id} defaultChecked={c.checked} className="h-4 w-4 accent-[var(--color-ink)]" /> {c.label}
+                  <input type="checkbox" name="cardIds" value={c.id} defaultChecked className="h-4 w-4 accent-[var(--color-ink)]" /> {c.label}
+                  <span className="text-sm text-muted">(desmarque para soltar)</span>
                 </label>
               </li>
             ))}
           </ul>
         )}
+        <label className="label mt-3" htmlFor="p-card">adicionar cartão: 4 últimos dígitos</label>
+        <input id="p-card" name="newCard" inputMode="numeric" pattern="\d{4}" maxLength={4} placeholder="0000" className="input w-32 tabular-nums" />
+        <p className="mt-1 text-sm text-muted">No teste vale qualquer número de 4 dígitos. Em produção, o cartão precisa existir nos arquivos do banco.</p>
       </fieldset>
 
       {leads && (

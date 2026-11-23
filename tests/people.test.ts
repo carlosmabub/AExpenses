@@ -11,7 +11,7 @@ import { createReport } from "@/lib/reports";
 import { createManualExpense, listAdminExpenses, listEmployeeExpenses, moveExpensesToReport, saveExpense } from "@/lib/expenses";
 import { decodeBvk3 } from "@/lib/bvk3/parser";
 import { approveRemaining, listReportsForApproval, reviewExpense, submitReport } from "@/lib/reports";
-import { assignCards, canReview, deletePerson, inAlertWindow, linkCardTo, reactivatePerson, savePerson, setLeader, setTeam, teamAlerts, teamSpending, terminatePerson } from "@/lib/people";
+import { addCardByDigits, assignCards, canReview, deletePerson, inAlertWindow, linkCardTo, reactivatePerson, savePerson, setLeader, setTeam, teamAlerts, teamSpending, terminatePerson } from "@/lib/people";
 
 const sample = decodeBvk3(readFileSync(path.join(__dirname, "fixtures/BVK3EXEMPLOMENSAL.txt")));
 const RECEIPT = { receiptPath: "teste.jpg", receiptMime: "image/jpeg" };
@@ -115,6 +115,35 @@ describe("equipes, aprovadores e desligamento", () => {
     expect((await db.select().from(cards).where(eq(cards.id, card.id)).get())!.employeeId).toBeNull();
     // despesas já têm dono fixo: continuam com a Ana
     expect((await listAdminExpenses(db, { unlinked: true })).length).toBe(0);
+  });
+
+  it("cartão por 4 dígitos: reserva no teste, recusa em produção, completa na importação", async () => {
+    const free = (await db.select().from(cards).all()).find((c) => c.holderName === "NOME DO PORTADOR 09")!;
+    // cartão que já veio do banco e está sem dono: vincula
+    await addCardByDigits(db, ana, free.last4, true);
+    expect((await db.select().from(cards).where(eq(cards.id, free.id)).get())!.employeeId).toBe(ana);
+    // de outra pessoa: recusa
+    await expect(addCardByDigits(db, bruno, free.last4, false)).rejects.toThrow(/já está com/);
+    await expect(addCardByDigits(db, bruno, "12", false)).rejects.toThrow(/4 últimos/);
+    // inexistente: produção recusa, teste reserva
+    await expect(addCardByDigits(db, bruno, "9876", true)).rejects.toThrow(/Não encontrei/);
+    await addCardByDigits(db, bruno, "9876", false);
+    const reserved = (await db.select().from(cards).where(eq(cards.last4, "9876")).get())!;
+    expect(reserved.employeeId).toBe(bruno);
+    expect(reserved.fingerprint.startsWith("pending:")).toBe(true);
+  });
+
+  it("a importação completa o cartão reservado e dá dono às despesas", async () => {
+    const fresh = await createDb(":memory:");
+    await seedIfEmpty(fresh);
+    const some = (await db.select().from(cards).all()).find((c) => c.holderName === "NOME DO PORTADOR 09")!;
+    await addCardByDigits(fresh, ana, some.last4, false);
+    await importBvk3(fresh, { fileName: "exemplo.txt", content: sample });
+    const rows = await fresh.select().from(cards).where(eq(cards.last4, some.last4)).all();
+    expect(rows).toHaveLength(1);
+    expect(rows[0].fingerprint.startsWith("pending:")).toBe(false);
+    expect(rows[0].employeeId).toBe(ana);
+    expect((await fresh.select().from(expenses).where(eq(expenses.employeeId, ana)).all()).length).toBeGreaterThan(0);
   });
 
   it("aviso só nos 3 últimos dias do mês e só do que vence no mês", async () => {

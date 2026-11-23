@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, isNull, ne, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull, like, ne, sql } from "drizzle-orm";
 import type { Db, DbLike } from "@/db";
 import { advances, cards, employees, expenses, reports, transactions, type Employee } from "@/db/schema";
 import { ExpenseError, listAdminExpenses, type ExpenseRow } from "@/lib/expenses";
@@ -113,15 +113,48 @@ export async function linkCardTo(db: DbLike, cardId: number, personId: number | 
     .run();
 }
 
+export const PENDING_PREFIX = "pending:";
+
+/**
+ * Associa um cartão à pessoa pelos 4 últimos dígitos.
+ * - Se o arquivo do banco já trouxe um cartão com esses dígitos e sem dono, ele é vinculado.
+ * - Se não existe nenhum: no piloto (`strict` falso) fica um cartão reservado, que a próxima importação com
+ *   esses dígitos preenche; em produção (`strict` verdadeiro) recusa, pois o cartão precisa existir no banco.
+ */
+export async function addCardByDigits(db: DbLike, personId: number, digits: string, strict: boolean): Promise<void> {
+  const last4 = digits.trim();
+  if (!/^\d{4}$/.test(last4)) throw new ExpenseError("Digite os 4 últimos dígitos do cartão.");
+  const matches = await db.select().from(cards).where(and(eq(cards.last4, last4), eq(cards.isBillingAccount, false))).all();
+  const mine = matches.find((c) => c.employeeId === personId);
+  if (mine) return;
+  const free = matches.filter((c) => !c.employeeId);
+  if (free.length) {
+    for (const c of free) await linkCardTo(db, c.id, personId);
+    return;
+  }
+  if (matches.length) {
+    const owner = await getPerson(db, matches[0].employeeId!);
+    throw new ExpenseError(`O cartão final ${last4} já está com ${owner?.name ?? "outra pessoa"}. Desvincule lá antes.`);
+  }
+  if (strict) throw new ExpenseError(`Não encontrei o cartão final ${last4} nos arquivos do banco. Confira os dígitos ou importe o arquivo que traz esse cartão.`);
+  await db.insert(cards).values({ fingerprint: `${PENDING_PREFIX}${personId}:${last4}`, last4, holderName: "", employeeId: personId }).onConflictDoNothing().run();
+}
+
 export interface PersonInput {
   name: string;
   email: string;
   password?: string;
   role: Role;
   costCenter: string;
-  cardHolderName: string;
+  /** Só altera se vier preenchido (o vínculo de cartão agora é pelos dígitos) */
+  cardHolderName?: string;
   leaderId: number | null;
+  /** Cartões que continuam com a pessoa; os outros dela são soltos */
   cardIds: number[];
+  /** 4 últimos dígitos de um cartão a adicionar */
+  newCardLast4?: string;
+  /** Produção: o cartão digitado precisa existir nos arquivos do banco */
+  strictCards?: boolean;
   /** Liderados (só vale para aprovador/admin) */
   teamIds: number[];
 }
@@ -142,7 +175,7 @@ export async function savePerson(db: Db, id: number | null, input: PersonInput):
     email,
     role: input.role,
     costCenter: input.costCenter.trim(),
-    cardHolderName: input.cardHolderName.trim().toUpperCase(),
+    ...(input.cardHolderName !== undefined ? { cardHolderName: input.cardHolderName.trim().toUpperCase() } : {}),
     ...(input.password ? { passwordHash: hashPassword(input.password) } : {}),
   };
   let personId = id;
@@ -157,6 +190,7 @@ export async function savePerson(db: Db, id: number | null, input: PersonInput):
   }
   await setLeader(db, personId, input.leaderId);
   await assignCards(db, personId, input.cardIds);
+  if (input.newCardLast4?.trim()) await addCardByDigits(db, personId, input.newCardLast4, Boolean(input.strictCards));
   if (isApprover(values)) await setTeam(db, personId, input.teamIds);
   return personId;
 }

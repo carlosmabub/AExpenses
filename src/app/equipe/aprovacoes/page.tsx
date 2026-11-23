@@ -3,11 +3,15 @@ import { getDb } from "@/db";
 import { requireApprover } from "@/lib/auth";
 import { dateTime, money } from "@/lib/format";
 import { listReportsForApproval } from "@/lib/reports";
+import { now } from "@/lib/clock";
+import { teamAlerts } from "@/lib/people";
+import { TeamAlerts } from "../alerts";
 import { ReportBadge } from "@/components/status-badge";
 
 export default async function TeamApprovals() {
   const user = await requireApprover();
-  const all = await listReportsForApproval(await getDb(), user);
+  const db = await getDb();
+  const [all, alerts] = await Promise.all([listReportsForApproval(db, user), teamAlerts(db, user.id, await now(db))]);
   const waiting = all.filter((r) => r.stage !== "aprovado");
   const done = all.filter((r) => r.stage === "aprovado");
   const List = ({ rows, empty }: { rows: typeof all; empty: string }) =>
@@ -29,6 +33,7 @@ export default async function TeamApprovals() {
     );
   return (
     <>
+      <TeamAlerts alerts={alerts} />
       <h1 className="head text-3xl text-ink">aprovações</h1>
       <p className="mt-2 text-sm text-muted">Relatórios enviados pela sua equipe.</p>
       <h2 className="head mt-8 text-xl text-ink">aguardando você</h2>

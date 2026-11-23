@@ -12,8 +12,8 @@ export async function formData(db: Db, personId: number | null): Promise<Pick<Pe
   return {
     leaders: active.filter((p) => isApprover(p) && p.id !== personId).map((p) => ({ id: p.id, name: p.name })),
     cards: allCards
-      .filter((c) => !c.isBillingAccount && (!c.employeeId || c.employeeId === personId))
-      .map((c) => ({ id: c.id, label: `${c.holderName}, final ${c.last4}`, checked: c.employeeId === personId && personId !== null })),
+      .filter((c) => !c.isBillingAccount && personId !== null && c.employeeId === personId)
+      .map((c) => ({ id: c.id, label: `final ${c.last4}${c.fingerprint.startsWith("pending:") ? ", aguardando o arquivo do banco" : ""}`, checked: true })),
     candidates: active
       .filter((p) => p.id !== personId)
       .map((p) => ({ id: p.id, name: p.name, checked: personId !== null && p.leaderId === personId, leaderName: p.leaderId ? (byId.get(p.leaderId)?.name ?? null) : null })),

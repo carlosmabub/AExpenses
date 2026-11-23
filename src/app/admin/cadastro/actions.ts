@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getDb } from "@/db";
-import { requireAdmin } from "@/lib/auth";
+import { demoMode, requireAdmin } from "@/lib/auth";
 import { ExpenseError } from "@/lib/expenses";
 import { deletePerson, reactivatePerson, savePerson, terminatePerson, type Role } from "@/lib/people";
 
@@ -27,9 +27,10 @@ export async function savePersonAction(_: PersonFormState, form: FormData): Prom
       password: String(form.get("password") ?? "") || undefined,
       role: ROLES.includes(role) ? role : "funcionario",
       costCenter: String(form.get("costCenter") ?? ""),
-      cardHolderName: String(form.get("cardHolderName") ?? ""),
       leaderId: Number(form.get("leaderId")) || null,
       cardIds: ints(form, "cardIds"),
+      newCardLast4: String(form.get("newCard") ?? ""),
+      strictCards: !demoMode(),
       teamIds: ints(form, "teamIds"),
     });
   } catch (error) {

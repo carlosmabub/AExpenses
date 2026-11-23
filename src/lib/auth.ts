@@ -55,7 +55,7 @@ export async function requireUser(): Promise<Employee> {
 
 export async function requireAdmin(): Promise<Employee> {
   const user = await requireUser();
-  if (user.role !== "admin") redirect("/app");
+  if (user.role !== "admin") redirect(user.role === "aprovador" ? "/equipe/aprovacoes" : "/app");
   return user;
 }
 
