@@ -86,6 +86,20 @@ drizzle/            migrações SQL
 tests/              testes com o arquivo de exemplo do banco
 ```
 
+## Arquivo de teste para outro usuário
+
+`scripts/gerar-bvk3-teste.mjs` gera um arquivo no layout BVK3 com uma viagem de trabalho (~20 compras de
+combustível, pedágio, hotel, restaurantes, aplicativo, ferramenta, EPI, frete e uma compra parcelada) terminando
+ontem, para um portador:
+
+```bash
+node scripts/gerar-bvk3-teste.mjs --portador MARCOS --final 2468
+# opções: --fim AAAA-MM-DD (último dia), --saida caminho.txt
+```
+
+Para importar: preencha "nome no cartão" do funcionário com o mesmo nome do portador (ou vincule depois em
+*Funcionários e cartões*), **desmarque** a caixa do Carlos na importação e leve o relógio do piloto para hoje.
+
 ## Publicar na Vercel (ambiente de teste)
 
 Na Vercel não há disco permanente, então o app usa dois serviços externos, ambos com plano gratuito:
