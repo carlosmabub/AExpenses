@@ -18,7 +18,7 @@ export function BulkApprove({ total }: { total: number }) {
     return () => document.removeEventListener("change", update);
   }, []);
   return (
-    <form id={FORM_ID} action={approveSelectedAction} className="mt-3 grid items-center gap-4 border-t border-rule py-3 md:grid-cols-[minmax(0,1fr)_auto]">
+    <form id={FORM_ID} action={approveSelectedAction} className="mt-3 grid items-center gap-4 border-t border-rule py-3 md:grid-cols-[minmax(0,1fr)_13.5rem]">
       <label className="flex min-w-0 items-center gap-3 text-sm text-ink">
         <span className="-ml-2 flex h-10 w-10 shrink-0 items-center justify-center">
           <input
@@ -30,12 +30,9 @@ export function BulkApprove({ total }: { total: number }) {
           />
         </span>
         selecionar todas
+        {selected > 0 && <span className="text-muted tabular-nums">{selected} de {total}</span>}
       </label>
-      <div className="flex justify-end">
-        <button type="submit" className="btn-primary" disabled={selected === 0}>
-          aprovar selecionadas{selected > 0 ? ` (${selected})` : ""}
-        </button>
-      </div>
+      <button type="submit" className="btn-primary w-full whitespace-nowrap" disabled={selected === 0}>aprovar selecionadas</button>
     </form>
   );
 }

@@ -20,8 +20,8 @@ export function ReviewControls({ expenseId, label }: { expenseId: number; label:
         </>
       ) : (
         <>
-          <button type="submit" name="decision" value="aprovada" className="btn-primary" disabled={pending} aria-label={`Aprovar ${label}`}>aprovar</button>
-          <button type="button" className="btn-ghost" onClick={() => setReturning(true)} aria-label={`Devolver ${label}`}>devolver</button>
+          <button type="submit" name="decision" value="aprovada" className="btn-primary w-[6.5rem]" disabled={pending} aria-label={`Aprovar ${label}`}>aprovar</button>
+          <button type="button" className="btn-ghost w-[6.5rem]" onClick={() => setReturning(true)} aria-label={`Devolver ${label}`}>devolver</button>
         </>
       )}
       {state?.error && <p className="w-full text-right text-sm text-error" aria-live="polite">{state.error}</p>}

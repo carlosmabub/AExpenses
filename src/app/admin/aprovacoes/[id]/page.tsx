@@ -3,9 +3,10 @@ import { notFound } from "next/navigation";
 import { ChevronLeft, Paperclip } from "lucide-react";
 import { getDb } from "@/db";
 import { getReport } from "@/lib/reports";
-import { date, dateTime, money, titleCase } from "@/lib/format";
+import { date, money, titleCase } from "@/lib/format";
 import { PAYMENT_LABELS } from "@/lib/status";
-import { ReportBadge, StatusBadge } from "@/components/status-badge";
+import { StatusBadge } from "@/components/status-badge";
+import { ReportHeader } from "@/components/report-header";
 import { CategoryIcon } from "@/components/category-icon";
 import { ReviewControls } from "@/components/review-controls";
 import { BulkApprove } from "@/components/bulk-approve";
@@ -23,36 +24,7 @@ export default async function ApprovalPage({ params }: { params: Promise<{ id: s
       <Link href="/admin/aprovacoes" className="link inline-flex min-h-10 items-center gap-1 font-display text-sm lowercase text-muted">
         <ChevronLeft size={16} aria-hidden="true" /> aprovações
       </Link>
-      <div className="mt-2 flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="head text-3xl text-ink">{report.name}</h1>
-          <p className="mt-2 text-sm text-muted">
-            {summary.owner?.name}, centro de custo {report.costCenter || "não informado"}
-            {report.submittedAt ? `, enviado em ${dateTime(report.submittedAt)}` : ""}
-          </p>
-        </div>
-        <ReportBadge stage={summary.stage} />
-      </div>
-
-      <dl className="mt-6 grid border-y border-rule sm:grid-cols-3">
-        <div className="py-4 pr-6"><dt className="label">total</dt><dd className="figure text-4xl">{money(summary.totalCents)}</dd></div>
-        <div className="py-4 pr-6 sm:border-l sm:border-rule sm:pl-6"><dt className="label">a reembolsar ao funcionário</dt><dd className="figure text-4xl">{money(summary.reimbursableCents)}</dd></div>
-        <div className="py-4 sm:border-l sm:border-rule sm:pl-6">
-          <dt className="label">adiantamento</dt>
-          {summary.advances.length ? (
-            <>
-              <dd className="figure text-4xl">{money(summary.advancedCents)}</dd>
-              <dd className="mt-1 text-sm text-muted">
-                gasto {money(summary.spentFromAdvanceCents)}
-                {summary.advanceBalanceCents > 0 ? `, a devolver ${money(summary.advanceBalanceCents)}` : summary.advanceBalanceCents < 0 ? `, a pagar ${money(-summary.advanceBalanceCents)}` : ", acertado"}
-              </dd>
-            </>
-          ) : (
-            <dd className="mt-1 text-muted">nenhum</dd>
-          )}
-        </div>
-      </dl>
-      {report.notes && <p className="mt-4 text-sm text-ink-2">Observações do funcionário: {report.notes}</p>}
+      <ReportHeader summary={summary} />
 
       <section className="mt-10" aria-labelledby="despesas">
         <h2 id="despesas" className="head text-xl text-ink">despesas</h2>
@@ -71,7 +43,11 @@ export default async function ApprovalPage({ params }: { params: Promise<{ id: s
                   <p className="font-medium text-ink">
                     {r.category?.name}: <span className="tabular-nums">{money(r.e.amountCents)}</span>
                   </p>
-                  <p className="text-sm text-ink-2">{titleCase(r.e.merchant)}, {date(r.e.purchaseDate)}, {PAYMENT_LABELS[r.e.paymentMethod]}{r.card ? ` final ${r.card.last4}` : ""}</p>
+                  <p className="flex flex-wrap gap-x-4 text-sm text-ink-2">
+                    <span>{titleCase(r.e.merchant)}</span>
+                    <span>{date(r.e.purchaseDate)}</span>
+                    <span>{PAYMENT_LABELS[r.e.paymentMethod]}{r.card ? ` final ${r.card.last4}` : ""}</span>
+                  </p>
                   <p className="mt-1 text-sm text-ink">{r.e.description}</p>
                   <p className="mt-1 flex flex-wrap items-center gap-3 text-sm text-muted">
                     <span>tipo: {r.category?.name ?? "não informado"}</span>
