@@ -9,6 +9,7 @@ import { listCategories, listEmployeeExpenses } from "@/lib/expenses";
 import { listEmployeeReports } from "@/lib/reports";
 import { date } from "@/lib/format";
 import { ExpenseRow, ReportRow, SectionCard } from "@/components/mobile/rows";
+import { CorporateCard } from "@/components/mobile/corporate-card";
 
 export default async function EmployeeHome() {
   const user = await requireUser();
@@ -36,13 +37,8 @@ export default async function EmployeeHome() {
       </header>
 
       {card ? (
-        <div className="relative -mt-20 mx-auto flex aspect-[1.7/1] w-[88%] flex-col justify-between rounded-card bg-accent-deep p-5 text-accent-ink shadow-card">
-          <span className="font-display text-lg tracking-[0.2em] tabular-nums">•••• •••• •••• {card.last4}</span>
-          <span className="figure text-2xl tracking-normal">R$ ••••</span>
-          <span className="flex items-end justify-between text-sm">
-            <span className="opacity-80">Cartão corporativo</span>
-            <span className="font-display font-medium">Astec</span>
-          </span>
+        <div className="relative -mt-20">
+          <CorporateCard last4={card.last4} holder={card.holderName} />
         </div>
       ) : (
         <div className="-mt-20 h-16" />

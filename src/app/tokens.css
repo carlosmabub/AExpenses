@@ -31,6 +31,10 @@
   --color-focus: oklch(52% 0.14 248);
   --color-link: oklch(45% 0.13 248);
   --color-surface: oklch(99.4% 0.003 248);
+  --color-card-light: oklch(38% 0.09 250);
+  --color-card-deep: oklch(20% 0.06 250);
+  --color-chip: oklch(82% 0.06 85);
+  --color-chip-line: oklch(62% 0.05 85);
   --color-error-soft: oklch(94% 0.03 27);
   --font-display: var(--font-outfit), "Outfit", ui-sans-serif, system-ui, sans-serif;
   --font-body: var(--font-onest), "Onest", ui-sans-serif, sans-serif;
