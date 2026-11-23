@@ -10,7 +10,7 @@ import { decodeBvk3 } from "@/lib/bvk3/parser";
 import { advanceClock, DAILY_FILE_HOUR_UTC, forgetSettings, setClock, setSetting } from "@/lib/clock";
 import { linkCardTo } from "@/lib/people";
 import { PILOT_USER } from "@/db/seed";
-import { approveExpenses, approveRemaining, createAdvance, reviewExpense } from "@/lib/reports";
+import { approveExpenses, createAdvance, reviewExpense } from "@/lib/reports";
 import { parseMoney } from "@/lib/format";
 import { CATEGORY_ICONS } from "@/components/category-icon";
 
@@ -110,12 +110,6 @@ export async function reviewExpenseAction(_: AdminFormState, form: FormData): Pr
   }
   refresh();
   return null;
-}
-
-export async function approveRemainingAction(form: FormData): Promise<void> {
-  const admin = await requireApprover();
-  await approveRemaining(await getDb(), { reportId: Number(form.get("reportId")), reviewerId: admin.id });
-  refresh();
 }
 
 export async function createAdvanceAction(_: AdminFormState, form: FormData): Promise<AdminFormState> {
