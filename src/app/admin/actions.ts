@@ -26,7 +26,7 @@ export async function importFile(_: ImportState, form: FormData): Promise<Import
   if (!(file instanceof File) || file.size === 0) return { error: "Escolha o arquivo BVK3 enviado pelo banco." };
   if (file.size > 20 * 1024 * 1024) return { error: "Arquivo muito grande (máx. 20 MB)." };
   const content = decodeBvk3(new Uint8Array(await file.arrayBuffer()));
-  const result = await importBvk3(await getDb(), { fileName: file.name, content, importedBy: admin.id, force: form.get("force") === "1", singleCardHolder: form.get("singleCard") === "1" ? PILOT_USER.holder : undefined });
+  const result = await importBvk3(await getDb(), { fileName: file.name, content, importedBy: admin.id, force: form.get("force") === "1", singleCardHolder: form.get("singleCard") === "1" ? PILOT_USER.holder : undefined, shiftDatesTo: form.get("shiftDates") === "1" ? new Date() : undefined });
   refresh();
   return { result, fileName: file.name };
 }

@@ -104,6 +104,24 @@ describe("piloto: todos os gastos num cartão só", () => {
   });
 });
 
+describe("piloto: datas trazidas para perto de hoje", () => {
+  it("anda com as datas em semanas inteiras até ontem", async () => {
+    const db = await createDb(":memory:");
+    await seedIfEmpty(db);
+    const today = new Date("2026-11-23T15:00:00Z");
+    const result = await importBvk3(db, { fileName: "exemplo.txt", content: sample, shiftDatesTo: today });
+    expect(result).toMatchObject({ imported: true, checkOk: true, newTransactions: 82 });
+    const txs = await db.select().from(transactions).all();
+    const lastPosting = txs.map((t) => t.postingDate!).sort().at(-1)!;
+    expect(lastPosting <= "2026-11-22").toBe(true);
+    expect(lastPosting > "2026-11-15").toBe(true);
+    const mini = txs.find((t) => t.merchant === "MINI MERCADO BRASIL")!;
+    expect(new Date(`${mini.purchaseDate}T12:00:00Z`).getUTCDay()).toBe(6); // sábado, como em 13/07/2013
+    expect(Date.parse(mini.postingDate!) - Date.parse(mini.purchaseDate!)).toBe(2 * 86400000);
+    expect((await now(db)).getUTCFullYear()).toBe(2026);
+  });
+});
+
 describe("prazo: fim do mês da compra", () => {
   it("vence no último dia do mês às 23:59 de Brasília", () => {
     expect(expenseDeadline("2013-07-04", new Date("2013-07-06T11:00:00Z")).toISOString()).toBe("2013-08-01T02:59:59.000Z");

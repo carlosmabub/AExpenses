@@ -19,6 +19,11 @@ export interface ImportOptions {
    * com este nome de portador, para um usuário de demonstração ver todos os gastos.
    */
   singleCardHolder?: string;
+  /**
+   * Piloto: anda com todas as datas do arquivo em semanas inteiras até a última data de
+   * lançamento cair em ontem (em relação a esta data) ou pouco antes. Mantém intervalos e dias da semana.
+   */
+  shiftDatesTo?: Date;
 }
 
 export interface ImportResult {
@@ -68,6 +73,7 @@ export async function importBvk3(db: Db, options: ImportOptions): Promise<Import
   const companyName = normalizeName(file.header?.companyName ?? "");
   // A conferência acima vale sobre o arquivo como veio; o remapeamento do piloto vem depois
   if (options.singleCardHolder) mergeCards(file, companyName, options.singleCardHolder);
+  if (options.shiftDatesTo) shiftFileDates(file, weeksUntil(file, options.shiftDatesTo));
 
   return db.transaction(async (tx) => {
     const batch = await tx
@@ -268,4 +274,32 @@ function mergeCards(file: ReturnType<typeof parseBvk3>, companyName: string, hol
   const totalBrlCents = employeeCards.reduce((sum, c) => sum + c.totalBrlCents, 0);
   file.cards = [...file.cards.filter((c) => isCompany(c.holderName)), { ...employeeCards[0], cardNumber: target, holderName, totalBrlCents }];
   for (const entry of file.entries) if (merged.has(entry.cardNumber)) entry.cardNumber = target;
+}
+
+function addDays(iso: string | null, days: number): string | null {
+  if (!iso) return iso;
+  const [y, m, d] = iso.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d + days)).toISOString().slice(0, 10);
+}
+
+/** Deslocamento, em dias múltiplos de 7, que leva a última data de lançamento para até ontem. */
+export function weeksUntil(file: ReturnType<typeof parseBvk3>, today: Date): number {
+  const last = file.entries.map((e) => e.postingDate ?? e.purchaseDate).filter((d): d is string => !!d).sort().at(-1);
+  if (!last) return 0;
+  const yesterday = Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() - 1);
+  const [y, m, d] = last.split("-").map(Number);
+  const days = Math.floor((yesterday - Date.UTC(y, m - 1, d)) / 86400000);
+  return days > 0 ? Math.floor(days / 7) * 7 : 0;
+}
+
+export function shiftFileDates(file: ReturnType<typeof parseBvk3>, days: number): void {
+  if (!days) return;
+  if (file.header) {
+    file.header.processingDate = addDays(file.header.processingDate, days);
+    file.header.dueDate = addDays(file.header.dueDate, days);
+  }
+  for (const e of file.entries) {
+    e.purchaseDate = addDays(e.purchaseDate, days);
+    e.postingDate = addDays(e.postingDate, days);
+  }
 }

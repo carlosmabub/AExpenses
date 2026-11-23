@@ -36,6 +36,8 @@ O banco ainda vai confirmar se o arquivo BVK3 sai diariamente. Para demonstrar o
    todos os gastos do arquivo como do cartão do Carlos" marcada (padrão no modo simulado), todas as compras do arquivo
    viram do cartão do usuário **Carlos** (carlos@empresa.com.br, senha 123456). Desmarque para ver os gastos divididos
    entre os portadores fictícios.
+   A caixa "Piloto: trazer as datas do arquivo para o mês atual" (também marcada por padrão) anda com todas as datas
+   do exemplo, que é de 2013, em semanas inteiras até perto de hoje, mantendo os intervalos e os dias da semana.
 2. No modo simulado, cada compra chega ao app no dia seguinte ao lançamento (D+1, 08:00). Use o
    **relógio do piloto** (+1d, +2d, +7d) para avançar os dias.
 3. Entre como **Carlos** num celular ou janela estreita, crie um relatório pelo + e lance nele as compras.
@@ -117,7 +119,7 @@ Localmente nada disso é necessário: sem essas variáveis o app usa `data/` com
 A cada `git push` a Vercel publica a versão nova.
 
 Se a base da Vercel já tiver o arquivo importado do jeito antigo (um cartão por portador), use *Importar arquivo →
-Apagar dados do piloto* e importe de novo com a caixa do Carlos marcada.
+Apagar dados do piloto* e importe de novo com as caixas do piloto marcadas (apagar também zera o relógio).
 
 > **Atenção**: este ambiente é de teste, com login rápido de demonstração ligado e senhas conhecidas. Antes de usar
 > com dados reais, defina `AEX_DEMO=0`, troque as senhas e não use o arquivo real do banco num ambiente público.

@@ -27,6 +27,10 @@ export function ImportForm({ pilot }: { pilot: boolean }) {
           <input type="checkbox" name="singleCard" value="1" defaultChecked={pilot} className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--color-ink)]" />
           Piloto: considerar todos os gastos do arquivo como do cartão do Carlos.
         </label>
+        <label className="mt-2 flex items-start gap-2 text-sm text-ink-2">
+          <input type="checkbox" name="shiftDates" value="1" defaultChecked={pilot} className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--color-ink)]" />
+          Piloto: trazer as datas do arquivo para o mês atual (o exemplo do banco é de 2013).
+        </label>
         <p className="mt-2 min-h-[1lh] text-sm text-error" aria-live="polite">{state?.error}</p>
       </form>
 
@@ -60,6 +64,7 @@ export function ImportForm({ pilot }: { pilot: boolean }) {
               <input type="file" name="file" accept=".txt,text/plain" required aria-label="Arquivo BVK3" className="min-w-0 text-ink-2" />
               <input type="hidden" name="force" value="1" />
               {pilot && <input type="hidden" name="singleCard" value="1" />}
+              {pilot && <input type="hidden" name="shiftDates" value="1" />}
               <button type="submit" className="btn-danger" disabled={pending}>importar mesmo com divergência</button>
             </form>
           )}
