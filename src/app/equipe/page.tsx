@@ -17,7 +17,7 @@ export default async function TeamDashboard({ searchParams }: { searchParams: Pr
     return (
       <>
         <h1 className="head text-3xl text-ink">minha equipe</h1>
-        <p className="mt-3 max-w-xl text-ink-2">Você ainda não tem liderados. O administrador define a sua equipe no cadastro.</p>
+        <p className="mt-3 max-w-xl text-ink-2">Você ainda não tem liderados. O administrador define a sua equipe em Usuários.</p>
       </>
     );
   }

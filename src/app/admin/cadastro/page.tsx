@@ -32,7 +32,7 @@ export default async function CadastroPage({ searchParams }: { searchParams: Pro
 
   return (
     <>
-      <PageTitle title="cadastro" subtitle="Usuários, perfis, líderes, cartões e centro de custo. Quem sai da empresa é desligado e o histórico continua aqui.">
+      <PageTitle title="usuários" subtitle="Usuários, perfis, líderes, cartões e centro de custo. Quem sai da empresa é desligado e o histórico continua aqui.">
         <Link href="/admin/cadastro/novo" className="btn-primary"><Plus size={16} aria-hidden="true" /> novo usuário</Link>
       </PageTitle>
 

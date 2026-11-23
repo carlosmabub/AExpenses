@@ -32,7 +32,7 @@ export default async function PersonPage({ params, searchParams }: { params: Pro
 
   return (
     <>
-      <Link href="/admin/cadastro" className="link mb-2 inline-flex min-h-10 items-center gap-1 font-display text-sm lowercase text-muted"><ChevronLeft size={16} aria-hidden="true" /> cadastro</Link>
+      <Link href="/admin/cadastro" className="link mb-2 inline-flex min-h-10 items-center gap-1 font-display text-sm lowercase text-muted"><ChevronLeft size={16} aria-hidden="true" /> usuários</Link>
       <PageTitle title={person.name} subtitle={person.active ? ROLE_LABELS[person.role] : `Desligado em ${date(person.terminatedAt)}. O histórico continua visível para os administradores.`} />
       {saved && <p className="mb-6 text-ink" role="status">Cadastro salvo.</p>}
 

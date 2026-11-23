@@ -7,9 +7,8 @@ const ITEMS = [
   { href: "/admin", label: "dashboard" },
   { href: "/admin/aprovacoes", label: "aprovações" },
   { href: "/admin/transacoes", label: "despesas" },
-  { href: "/admin/adiantamentos", label: "adiantamentos" },
   { href: "/admin/importar", label: "importar" },
-  { href: "/admin/cadastro", label: "cadastro" },
+  { href: "/admin/cadastro", label: "usuários" },
   { href: "/admin/categorias", label: "tipos" },
   { href: "/admin/exportar", label: "exportar" },
 ];
