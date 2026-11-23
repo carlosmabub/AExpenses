@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { HandCoins, Plus, X } from "lucide-react";
+import { CircleAlert, HandCoins, Plus, X } from "lucide-react";
 import { getDb } from "@/db";
 import { requireUser } from "@/lib/auth";
 import { listCategories, listEmployeeExpenses } from "@/lib/expenses";
@@ -63,7 +63,14 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
               footer={
                 open ? (
                   <>
-                    <span className="text-error">{e.e.savedAt ? "" : "Falta tipo ou comprovante"}</span>
+                    <ul className="space-y-1 text-error">
+                      {!e.e.savedAt && !e.e.categoryId && (
+                        <li className="flex items-center gap-1.5"><CircleAlert size={14} aria-hidden="true" /> Tipo não informado</li>
+                      )}
+                      {!e.e.savedAt && !e.e.receiptPath && (
+                        <li className="flex items-center gap-1.5"><CircleAlert size={14} aria-hidden="true" /> Comprovante não anexado</li>
+                      )}
+                    </ul>
                     <form action={removeExpenseAction}>
                       <input type="hidden" name="expenseId" value={e.e.id} />
                       <button type="submit" className="inline-flex min-h-9 items-center gap-1 rounded-pill px-2 text-muted hover:bg-paper-2 hover:text-ink">

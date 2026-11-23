@@ -37,7 +37,7 @@ export function ExpenseRow({ expense, href, icons, showStatus = false, footer }:
           <span className="chip">{PAYMENT_CHIP[e.paymentMethod]}</span>
         </span>
       </Link>
-      {footer && <div className="flex items-center justify-between gap-3 px-4 pb-2 text-sm">{footer}</div>}
+      {footer && <div className="flex items-start justify-between gap-3 px-4 pb-2 text-sm">{footer}</div>}
     </li>
   );
 }
