@@ -1,10 +1,10 @@
 import { Nfc } from "lucide-react";
 
 /**
- * Logotipo oficial do banco (arquivo em public/), quando a empresa fornecer.
- * Não desenhamos a marca de memória: sem o arquivo, o nome aparece escrito.
+ * Logotipo do banco (public/brand/bradesco.svg), vetorizado a partir da imagem fornecida pela empresa.
+ * Sem o arquivo (null), o nome aparece escrito e o fundo leva só os arcos.
  */
-const LOGO_FILE: string | null = null; // ex.: "brand/bradesco.svg"
+const LOGO_FILE: string | null = "brand/bradesco.svg";
 const hasLogo = LOGO_FILE !== null;
 
 /**
@@ -20,7 +20,7 @@ export function CorporateCard({ last4, holder, company }: { last4: string; holde
     >
       {/* marca grande ao fundo, no centro, só decoração */}
       {hasLogo ? (
-        <img src={`/${LOGO_FILE}`} alt="" aria-hidden="true" className="pointer-events-none absolute left-1/2 top-1/2 h-[85%] w-auto -translate-x-1/2 -translate-y-1/2 opacity-[0.08] [filter:brightness(0)_invert(1)]" />
+        <img src={`/${LOGO_FILE}`} alt="" aria-hidden="true" className="pointer-events-none absolute left-1/2 top-1/2 h-[88%] w-auto -translate-x-1/2 -translate-y-1/2 opacity-[0.09] [filter:brightness(0)_invert(1)]" />
       ) : (
         <>
           <span aria-hidden="true" className="pointer-events-none absolute left-1/2 top-1/2 h-[62cqw] w-[62cqw] -translate-x-1/2 -translate-y-1/2 rounded-pill border-[6cqw] border-white/[0.06]" />
@@ -28,13 +28,10 @@ export function CorporateCard({ last4, holder, company }: { last4: string; holde
         </>
       )}
 
-      {/* canto superior esquerdo: a marca do banco */}
-      <div className="absolute left-[6%] top-[8%] flex h-[13%] items-center">
-        {hasLogo ? (
-          <img src={`/${LOGO_FILE}`} alt="Bradesco" className="h-full w-auto [filter:brightness(0)_invert(1)]" />
-        ) : (
-          <span className="font-display text-[7.5cqw] font-medium leading-none tracking-tight">bradesco</span>
-        )}
+      {/* canto superior esquerdo: o símbolo e o nome do banco */}
+      <div className="absolute left-[6%] top-[8%] flex h-[13%] items-center gap-[1.6cqw]">
+        {hasLogo && <img src={`/${LOGO_FILE}`} alt="" aria-hidden="true" className="h-full w-auto [filter:brightness(0)_invert(1)]" />}
+        <span className="font-display text-[7.5cqw] font-medium leading-none tracking-tight">bradesco</span>
       </div>
 
       {/* chip à esquerda e aproximação à direita, no meio do cartão */}
