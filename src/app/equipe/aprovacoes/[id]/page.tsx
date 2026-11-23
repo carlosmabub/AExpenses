@@ -89,7 +89,8 @@ export default async function TeamApprovalPage({ params }: { params: Promise<{ i
                   <p className="text-sm text-ink-2">{titleCase(r.e.merchant)}, {date(r.e.purchaseDate)}, {PAYMENT_LABELS[r.e.paymentMethod]}{r.card ? ` final ${r.card.last4}` : ""}</p>
                   <p className="mt-1 text-sm text-ink">{r.e.description}</p>
                   <p className="mt-1 flex flex-wrap items-center gap-3 text-sm text-muted">
-                    <span>centro de custo {r.e.costCenter || "não informado"}</span>
+                    <span>tipo: {r.category?.name ?? "não informado"}</span>
+                    <span>centro de custo: {r.e.costCenter || "não informado"}</span>
                     {r.e.receiptPath ? (
                       <a href={`/recibo/${r.e.id}`} target="_blank" className="link inline-flex items-center gap-1 text-link"><Paperclip size={14} aria-hidden="true" /> comprovante</a>
                     ) : (
