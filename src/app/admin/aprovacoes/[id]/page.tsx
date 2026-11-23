@@ -8,7 +8,7 @@ import { PAYMENT_LABELS } from "@/lib/status";
 import { ReportBadge, StatusBadge } from "@/components/status-badge";
 import { CategoryIcon } from "@/components/category-icon";
 import { approveRemainingAction } from "../../actions";
-import { ReviewControls } from "../review-controls";
+import { ReviewControls } from "@/components/review-controls";
 
 export default async function ApprovalPage({ params }: { params: Promise<{ id: string }> }) {
   const summary = await getReport(await getDb(), Number((await params).id));

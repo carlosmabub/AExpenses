@@ -2,6 +2,7 @@ import { and, asc, desc, eq, inArray, isNull } from "drizzle-orm";
 import type { Db, DbLike } from "@/db";
 import { advances, employees, expenses, reports, type Advance, type Report } from "@/db/schema";
 import { now } from "@/lib/clock";
+import { canReview } from "@/lib/people";
 import { ExpenseError, listExpensesOfReports, type ExpenseRow } from "@/lib/expenses";
 
 import type { ReportStage } from "@/lib/status";
@@ -85,9 +86,13 @@ export async function listEmployeeReports(db: DbLike, employeeId: number): Promi
   return summarizeAll(db, rows);
 }
 
-/** Relatórios enviados, para o aprovador (por enquanto o financeiro). */
-export async function listReportsForApproval(db: DbLike): Promise<ReportSummary[]> {
-  const rows = await db.select().from(reports).where(inArray(reports.status, ["enviado", "aprovado"])).orderBy(desc(reports.submittedAt)).all();
+/** Relatórios enviados que o revisor pode analisar: o admin vê todos; o aprovador, os dos liderados. */
+export async function listReportsForApproval(db: DbLike, reviewer: { id: number; role: string }): Promise<ReportSummary[]> {
+  const conditions = [inArray(reports.status, ["enviado", "aprovado"])];
+  if (reviewer.role !== "admin") {
+    conditions.push(inArray(reports.employeeId, db.select({ id: employees.id }).from(employees).where(eq(employees.leaderId, reviewer.id))));
+  }
+  const rows = await db.select().from(reports).where(and(...conditions)).orderBy(desc(reports.submittedAt)).all();
   return summarizeAll(db, rows);
 }
 
@@ -166,6 +171,10 @@ export async function reviewExpense(
   if (!expense?.reportId) throw new ExpenseError("Despesa não encontrada.");
   const report = await db.select().from(reports).where(eq(reports.id, expense.reportId)).get();
   if (!report || report.status !== "enviado") throw new ExpenseError("O relatório não está aguardando aprovação.");
+  const reviewer = await db.select().from(employees).where(eq(employees.id, input.reviewerId)).get();
+  if (!reviewer || !reviewer.active || !(await canReview(db, reviewer, report.employeeId))) {
+    throw new ExpenseError("Você não pode aprovar relatórios desta pessoa.");
+  }
   if (expense.reviewStatus === "devolvida" && input.decision === "devolvida") throw new ExpenseError("A despesa já foi devolvida.");
   const comment = input.comment.trim();
   if (input.decision === "devolvida" && !comment) throw new ExpenseError("Diga ao funcionário o que corrigir.");

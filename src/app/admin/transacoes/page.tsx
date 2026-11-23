@@ -1,8 +1,7 @@
 import Link from "next/link";
-import { asc, eq } from "drizzle-orm";
 import { Download, Paperclip } from "lucide-react";
 import { getDb } from "@/db";
-import { employees } from "@/db/schema";
+import { displayName, listPeople } from "@/lib/people";
 import { listAdminExpenses, listCategories } from "@/lib/expenses";
 import { date, installmentLabel, money, titleCase } from "@/lib/format";
 import type { ExpenseStatus } from "@/lib/status";
@@ -24,7 +23,7 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
     to: sp.ate || undefined,
     unlinked: sp.sem_vinculo === "1",
   });
-  const people = await db.select().from(employees).where(eq(employees.role, "funcionario")).orderBy(asc(employees.name)).all();
+  const people = await listPeople(db);
   const cats = await listCategories(db, false);
   const total = rows.filter((r) => r.e.kind !== "estorno").reduce((s, r) => s + r.e.amountCents, 0);
   const exportQuery = new URLSearchParams(Object.entries(sp).filter(([, v]) => v) as [string, string][]).toString();
@@ -42,7 +41,7 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
           <label className="label" htmlFor="f-funcionario">funcionário</label>
           <select id="f-funcionario" name="funcionario" defaultValue={sp.funcionario ?? ""} className="input">
             <option value="">todos</option>
-            {people.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+            {people.map((p) => <option key={p.id} value={p.id}>{displayName(p)}</option>)}
           </select>
         </div>
         <div>

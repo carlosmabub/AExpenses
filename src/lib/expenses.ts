@@ -84,6 +84,8 @@ export async function getExpense(db: DbLike, expenseId: number): Promise<Expense
 
 export interface AdminFilters {
   employeeId?: number;
+  /** Vários donos (equipe de um líder) */
+  ownerIds?: number[];
   status?: ExpenseStatus;
   categoryId?: number;
   unlinked?: boolean;
@@ -96,6 +98,7 @@ export async function listAdminExpenses(db: DbLike, filters: AdminFilters = {}):
   const at = await now(db);
   const conditions = [lte(expenses.availableAt, at.toISOString())];
   if (filters.employeeId) conditions.push(eq(ownerId, filters.employeeId));
+  if (filters.ownerIds) conditions.push(inArray(ownerId, filters.ownerIds));
   if (filters.unlinked) conditions.push(isNull(ownerId));
   if (filters.categoryId) conditions.push(eq(expenses.categoryId, filters.categoryId));
   const rows = await baseQuery(db).where(and(...conditions)).orderBy(...newestFirst).all();

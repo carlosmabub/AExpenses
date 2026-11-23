@@ -9,7 +9,7 @@ const ITEMS = [
   { href: "/admin/transacoes", label: "despesas" },
   { href: "/admin/adiantamentos", label: "adiantamentos" },
   { href: "/admin/importar", label: "importar" },
-  { href: "/admin/funcionarios", label: "funcionários" },
+  { href: "/admin/cadastro", label: "cadastro" },
   { href: "/admin/categorias", label: "tipos" },
   { href: "/admin/exportar", label: "exportar" },
 ];
@@ -37,7 +37,7 @@ export function SidebarNav({ unlinked, toApprove = 0, stacked = false }: { unlin
                   <span className="visually-hidden"> relatórios para aprovar</span>
                 </span>
               )}
-              {item.href === "/admin/funcionarios" && unlinked > 0 && (
+              {item.href === "/admin/cadastro" && unlinked > 0 && (
                 <span className="rounded-pill bg-accent px-1.5 text-[11px] leading-5 text-accent-ink tabular-nums">
                   {unlinked}
                   <span className="visually-hidden"> cartões não vinculados</span>

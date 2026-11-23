@@ -11,10 +11,15 @@ export const employees = sqliteTable("employees", {
   name: text("name").notNull(),
   email: text("email").notNull().unique(),
   passwordHash: text("password_hash").notNull(),
-  role: text("role", { enum: ["admin", "funcionario"] }).notNull().default("funcionario"),
+  /** admin: painel completo; aprovador: funcionário que também aprova a equipe dele; funcionario: só o app */
+  role: text("role", { enum: ["admin", "aprovador", "funcionario"] }).notNull().default("funcionario"),
   costCenter: text("cost_center").notNull().default(""),
   /** Nome do portador como o banco envia no arquivo; usado para vincular cartões novos */
   cardHolderName: text("card_holder_name").notNull().default(""),
+  /** Líder (aprovador) que aprova os relatórios desta pessoa; sem líder, aprova o admin */
+  leaderId: integer("leader_id"),
+  /** Desligado da empresa: não entra mais no app, mas o histórico fica */
+  terminatedAt: text("terminated_at"),
   active: integer("active", { mode: "boolean" }).notNull().default(true),
   createdAt: createdAt(),
 });

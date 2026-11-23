@@ -1,13 +1,14 @@
 import Link from "next/link";
 import { eq } from "drizzle-orm";
-import { UserRound } from "lucide-react";
+import { TriangleAlert, UserRound } from "lucide-react";
 import { getDb } from "@/db";
 import { cards } from "@/db/schema";
 import { requireUser } from "@/lib/auth";
 import { clockMode, now } from "@/lib/clock";
 import { listCategories, listEmployeeExpenses } from "@/lib/expenses";
 import { listEmployeeReports } from "@/lib/reports";
-import { date } from "@/lib/format";
+import { date, money } from "@/lib/format";
+import { isApprover, teamAlerts } from "@/lib/people";
 import { ExpenseRow, ReportRow, SectionCard } from "@/components/mobile/rows";
 import { CorporateCard } from "@/components/mobile/corporate-card";
 
@@ -29,6 +30,7 @@ export default async function EmployeeHome() {
   const returned = expenses.filter((e) => e.status === "devolvida");
   const reports = allReports.filter((r) => r.stage !== "aprovado");
   const simulated = mode === "simulado";
+  const alerts = isApprover(user) ? await teamAlerts(db, user.id, at) : [];
 
   return (
     <>
@@ -51,6 +53,16 @@ export default async function EmployeeHome() {
       )}
 
       <div className="mt-6 space-y-3">
+        {alerts.length > 0 && (
+          <Link href="/equipe" className="surface-card flex items-start gap-3 p-4">
+            <TriangleAlert size={20} aria-hidden="true" className="mt-0.5 shrink-0 text-accent" />
+            <span className="text-sm text-ink">
+              <span className="block font-medium">Despesas da equipe vencendo neste mês</span>
+              {alerts.slice(0, 3).map((a) => <span key={a.person.id} className="block text-ink-2">{a.person.name}: {a.count} ({money(a.totalCents)})</span>)}
+              {alerts.length > 3 && <span className="block text-muted">e mais {alerts.length - 3}</span>}
+            </span>
+          </Link>
+        )}
         {returned.length > 0 && (
           <SectionCard title="Devolvidas para corrigir" count={returned.length} href="/app/despesas?aba=devolvidas" open>
             <ul>{returned.slice(0, 3).map((e) => <ExpenseRow key={e.e.id} expense={e} href={`/app/despesas/${e.e.id}?voltar=/app`} icons={icons} />)}</ul>

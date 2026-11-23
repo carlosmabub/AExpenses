@@ -1,21 +1,24 @@
 import Link from "next/link";
-import { ChevronRight, FolderOpen, LogOut, ReceiptText, UserRound } from "lucide-react";
+import { ChevronRight, FolderOpen, LogOut, ReceiptText, UserRound, UsersRound } from "lucide-react";
 import { getDb } from "@/db";
 import { requireUser } from "@/lib/auth";
 import { listEmployeeExpenses } from "@/lib/expenses";
 import { listEmployeeReports } from "@/lib/reports";
+import { isApprover, pendingApprovals } from "@/lib/people";
 import { logout } from "@/app/login/actions";
 import { TopBar } from "@/components/mobile/top-bar";
 
 export default async function MenuPage() {
   const user = await requireUser();
   const db = await getDb();
-  const [expenseList, reportList] = await Promise.all([listEmployeeExpenses(db, user.id), listEmployeeReports(db, user.id)]);
+  const leads = isApprover(user);
+  const [expenseList, reportList, waiting] = await Promise.all([listEmployeeExpenses(db, user.id), listEmployeeReports(db, user.id), leads ? pendingApprovals(db, user) : 0]);
   const pending = expenseList.filter((e) => e.status === "sem_relatorio" || e.status === "devolvida").length;
   const reports = reportList.filter((r) => r.stage !== "aprovado").length;
   const items = [
     { href: "/app/despesas", label: "Despesas", Icon: ReceiptText, count: pending },
     { href: "/app/relatorios", label: "Relatórios", Icon: FolderOpen, count: reports },
+    ...(leads ? [{ href: "/equipe", label: "Minha equipe", Icon: UsersRound, count: waiting }] : []),
     { href: "/app/perfil", label: "Perfil", Icon: UserRound, count: 0 },
   ];
   return (

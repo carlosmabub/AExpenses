@@ -95,7 +95,7 @@ export default async function Dashboard() {
               <tbody>
                 {employeesRanked.map((e) => {
                   const count = (...s: string[]) => e.rows.filter((r) => s.includes(r.status)).length;
-                  const link = e.id ? `/admin/transacoes?funcionario=${e.id}` : "/admin/funcionarios";
+                  const link = e.id ? `/admin/transacoes?funcionario=${e.id}` : "/admin/cadastro";
                   return (
                     <tr key={e.name}>
                       <td><Link href={link} className="link text-ink">{e.name}</Link></td>

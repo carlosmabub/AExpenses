@@ -104,6 +104,8 @@ export async function importBvk3(db: Db, options: ImportOptions): Promise<Import
       (await tx.select().from(cards).where(inArray(cards.fingerprint, [...new Set(fingerprints.values())])).all()).map((c) => [c.fingerprint, c]),
     );
     const cardIds = new Map<string, number>();
+    // Dono do cartão no momento da importação: fica gravado na despesa (histórico fixo)
+    const cardOwner = new Map<number, number | null>();
     for (const card of file.cards) {
       const fingerprint = fingerprints.get(card.cardNumber)!;
       let row = existing.get(fingerprint);
@@ -126,6 +128,7 @@ export async function importBvk3(db: Db, options: ImportOptions): Promise<Import
         base.newCards++;
       }
       cardIds.set(card.cardNumber, row.id);
+      cardOwner.set(row.id, row.employeeId);
       if (!row.employeeId && !row.isBillingAccount) base.unlinkedCards.push(`${row.holderName} (final ${row.last4})`);
     }
 
@@ -187,6 +190,7 @@ export async function importBvk3(db: Db, options: ImportOptions): Promise<Import
     // Cada compra nova vira uma despesa do dono do cartão
     const expenseRows = inserted.map((t) => ({
       transactionId: t.id,
+      employeeId: cardOwner.get(t.cardId) ?? null,
       source: "cartao" as const,
       kind: t.kind,
       paymentMethod: "cartao" as const,

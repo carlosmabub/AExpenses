@@ -59,6 +59,13 @@ export async function requireAdmin(): Promise<Employee> {
   return user;
 }
 
+/** Aprovador (líder) ou admin. */
+export async function requireApprover(): Promise<Employee> {
+  const user = await requireUser();
+  if (user.role !== "admin" && user.role !== "aprovador") redirect("/app");
+  return user;
+}
+
 /** Login rápido de demonstração (piloto). Desligue com AEX_DEMO=0. */
 export function demoMode(): boolean {
   return process.env.AEX_DEMO !== "0";

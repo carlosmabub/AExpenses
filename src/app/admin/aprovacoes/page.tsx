@@ -1,12 +1,14 @@
 import Link from "next/link";
 import { getDb } from "@/db";
+import { requireAdmin } from "@/lib/auth";
 import { listReportsForApproval } from "@/lib/reports";
 import { dateTime, money } from "@/lib/format";
 import { PageTitle } from "@/components/page-title";
 import { ReportBadge } from "@/components/status-badge";
 
 export default async function ApprovalsPage() {
-  const all = await listReportsForApproval(await getDb());
+  const admin = await requireAdmin();
+  const all = await listReportsForApproval(await getDb(), admin);
   const waiting = all.filter((r) => r.stage !== "aprovado");
   const done = all.filter((r) => r.stage === "aprovado");
   const Table = ({ rows, empty }: { rows: typeof all; empty: string }) => (

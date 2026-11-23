@@ -3,12 +3,12 @@
 import { revalidatePath } from "next/cache";
 import { eq, inArray } from "drizzle-orm";
 import { getDb } from "@/db";
-import { advances, cards, categories, classifications, employees, expenses, importBatches, reports, settings, transactions } from "@/db/schema";
-import { requireAdmin } from "@/lib/auth";
+import { advances, cards, categories, classifications, expenses, importBatches, reports, settings, transactions } from "@/db/schema";
+import { requireAdmin, requireApprover } from "@/lib/auth";
 import { importBvk3, type ImportResult } from "@/lib/bvk3/import";
 import { decodeBvk3 } from "@/lib/bvk3/parser";
 import { advanceClock, DAILY_FILE_HOUR_UTC, forgetSettings, setClock, setSetting } from "@/lib/clock";
-import { hashPassword } from "@/lib/password";
+import { linkCardTo } from "@/lib/people";
 import { PILOT_USER } from "@/db/seed";
 import { approveRemaining, createAdvance, reviewExpense } from "@/lib/reports";
 import { parseMoney } from "@/lib/format";
@@ -73,30 +73,7 @@ export async function resetPilot(): Promise<void> {
 
 export async function linkCard(form: FormData): Promise<void> {
   await requireAdmin();
-  const employeeId = Number(form.get("employeeId")) || null;
-  await (await getDb()).update(cards).set({ employeeId }).where(eq(cards.id, Number(form.get("cardId")))).run();
-  refresh();
-}
-
-export async function saveEmployee(form: FormData): Promise<void> {
-  await requireAdmin();
-  const db = await getDb();
-  const id = Number(form.get("id")) || null;
-  const values = {
-    name: String(form.get("name") ?? "").trim(),
-    email: String(form.get("email") ?? "").trim().toLowerCase(),
-    costCenter: String(form.get("costCenter") ?? "").trim(),
-    cardHolderName: String(form.get("cardHolderName") ?? "").trim().toUpperCase(),
-    role: form.get("role") === "admin" ? ("admin" as const) : ("funcionario" as const),
-    active: form.get("active") !== "0",
-  };
-  if (!values.name || !values.email) return;
-  const password = String(form.get("password") ?? "");
-  if (id) {
-    await db.update(employees).set({ ...values, ...(password ? { passwordHash: hashPassword(password) } : {}) }).where(eq(employees.id, id)).run();
-  } else {
-    await db.insert(employees).values({ ...values, passwordHash: hashPassword(password || "123456") }).onConflictDoNothing().run();
-  }
+  await linkCardTo(await getDb(), Number(form.get("cardId")), Number(form.get("employeeId")) || null);
   refresh();
 }
 
@@ -120,7 +97,7 @@ export async function saveCategory(form: FormData): Promise<void> {
 export type AdminFormState = { error: string } | null;
 
 export async function reviewExpenseAction(_: AdminFormState, form: FormData): Promise<AdminFormState> {
-  const admin = await requireAdmin();
+  const admin = await requireApprover();
   try {
     await reviewExpense(await getDb(), {
       expenseId: Number(form.get("expenseId")),
@@ -136,7 +113,7 @@ export async function reviewExpenseAction(_: AdminFormState, form: FormData): Pr
 }
 
 export async function approveRemainingAction(form: FormData): Promise<void> {
-  const admin = await requireAdmin();
+  const admin = await requireApprover();
   await approveRemaining(await getDb(), { reportId: Number(form.get("reportId")), reviewerId: admin.id });
   refresh();
 }

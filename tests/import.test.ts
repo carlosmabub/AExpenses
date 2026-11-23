@@ -34,7 +34,11 @@ describe("importação BVK3", () => {
     expect(result).toMatchObject({ imported: true, checkOk: true, newTransactions: 82, duplicateTransactions: 0, ignoredEntries: 17 });
     const rows = await db.select().from(expenses).all();
     expect(rows).toHaveLength(82);
-    expect(rows.every((e) => e.source === "cartao" && e.paymentMethod === "cartao" && e.employeeId === null)).toBe(true);
+    expect(rows.every((e) => e.source === "cartao" && e.paymentMethod === "cartao")).toBe(true);
+    // o dono do cartão fica gravado na despesa (histórico fixo)
+    const owners = new Map((await db.select().from(cards).all()).map((c) => [c.id, c.employeeId]));
+    const txCard = new Map((await db.select().from(transactions).all()).map((t) => [t.id, t.cardId]));
+    expect(rows.every((e) => e.employeeId === (owners.get(txCard.get(e.transactionId!)!) ?? null))).toBe(true);
     expect(rows.filter((e) => e.kind === "saque")).toHaveLength(4);
   });
 

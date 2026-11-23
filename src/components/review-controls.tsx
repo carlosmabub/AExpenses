@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { reviewExpenseAction } from "../actions";
+import { reviewExpenseAction } from "@/app/admin/actions";
 
 /** Aprovar ou devolver uma despesa; devolver pede o que corrigir. */
 export function ReviewControls({ expenseId, label }: { expenseId: number; label: string }) {
