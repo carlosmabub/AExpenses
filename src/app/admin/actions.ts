@@ -7,7 +7,7 @@ import { advances, cards, categories, classifications, employees, expenses, impo
 import { requireAdmin } from "@/lib/auth";
 import { importBvk3, type ImportResult } from "@/lib/bvk3/import";
 import { decodeBvk3 } from "@/lib/bvk3/parser";
-import { advanceClock, DAILY_FILE_HOUR_UTC, setClock, setSetting } from "@/lib/clock";
+import { advanceClock, DAILY_FILE_HOUR_UTC, forgetSettings, setClock, setSetting } from "@/lib/clock";
 import { hashPassword } from "@/lib/password";
 import { PILOT_USER } from "@/db/seed";
 import { approveRemaining, createAdvance, reviewExpense } from "@/lib/reports";
@@ -67,6 +67,7 @@ export async function resetPilot(): Promise<void> {
     await tx.delete(cards).run();
     await tx.delete(settings).where(inArray(settings.key, ["sim_now"])).run();
   });
+  forgetSettings();
   refresh();
 }
 

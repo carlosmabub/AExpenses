@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { cache } from "react";
 import type { DbLike as Db } from "@/db";
 import { settings } from "@/db/schema";
 
@@ -13,12 +13,35 @@ export const DEFAULT_DEADLINE_HOURS = 48;
 /** Horário (Brasília) em que o arquivo diário fica disponível no modo simulado */
 export const DAILY_FILE_HOUR_UTC = 11; // 08:00 em Brasília (UTC-3)
 
+/**
+ * As configurações são lidas numa consulta só e guardadas durante a requisição
+ * (cache do React: cada requisição tem o seu; fora do servidor, não guarda nada).
+ * Gravar uma configuração descarta o que foi guardado.
+ */
+const requestSettings = cache((): { loaded?: Promise<Map<string, string>> } => ({}));
+
+function allSettings(db: Db): Promise<Map<string, string>> {
+  const holder = requestSettings();
+  holder.loaded ??= db
+    .select()
+    .from(settings)
+    .all()
+    .then((rows) => new Map(rows.map((r) => [r.key, r.value])));
+  return holder.loaded;
+}
+
+/** Descarta as configurações guardadas nesta requisição (depois de alterá-las direto no banco). */
+export function forgetSettings(): void {
+  requestSettings().loaded = undefined;
+}
+
 async function getSetting(db: Db, key: string): Promise<string | undefined> {
-  return (await db.select().from(settings).where(eq(settings.key, key)).get())?.value;
+  return (await allSettings(db)).get(key);
 }
 
 export async function setSetting(db: Db, key: string, value: string): Promise<void> {
   await db.insert(settings).values({ key, value }).onConflictDoUpdate({ target: settings.key, set: { value } }).run();
+  requestSettings().loaded = undefined;
 }
 
 export async function clockMode(db: Db): Promise<ClockMode> {

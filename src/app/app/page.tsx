@@ -14,15 +14,21 @@ import { CorporateCard } from "@/components/mobile/corporate-card";
 export default async function EmployeeHome() {
   const user = await requireUser();
   const db = await getDb();
-  const at = await now(db);
-  const icons = new Map((await listCategories(db, false)).map((c) => [c.id, c.icon]));
-  const expenses = await listEmployeeExpenses(db, user.id);
+  // tudo independente: vai ao banco ao mesmo tempo
+  const [at, categoryList, expenses, allReports, [card], mode] = await Promise.all([
+    now(db),
+    listCategories(db, false),
+    listEmployeeExpenses(db, user.id),
+    listEmployeeReports(db, user.id),
+    db.select().from(cards).where(eq(cards.employeeId, user.id)).all(),
+    clockMode(db),
+  ]);
+  const icons = new Map(categoryList.map((c) => [c.id, c.icon]));
   const withoutReport = expenses.filter((e) => e.status === "sem_relatorio" || e.status === "ignorada");
   const late = withoutReport.filter((e) => e.status === "ignorada").length;
   const returned = expenses.filter((e) => e.status === "devolvida");
-  const reports = (await listEmployeeReports(db, user.id)).filter((r) => r.stage !== "aprovado");
-  const [card] = await db.select().from(cards).where(eq(cards.employeeId, user.id)).all();
-  const simulated = (await clockMode(db)) === "simulado";
+  const reports = allReports.filter((r) => r.stage !== "aprovado");
+  const simulated = mode === "simulado";
 
   return (
     <>

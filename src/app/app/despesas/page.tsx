@@ -11,8 +11,8 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Pro
   const { aba, q = "" } = await searchParams;
   const user = await requireUser();
   const db = await getDb();
-  const icons = new Map((await listCategories(db, false)).map((c) => [c.id, c.icon]));
-  const all = await listEmployeeExpenses(db, user.id);
+  const [categoryList, all] = await Promise.all([listCategories(db, false), listEmployeeExpenses(db, user.id)]);
+  const icons = new Map(categoryList.map((c) => [c.id, c.icon]));
   const returned = all.filter((e) => e.status === "devolvida").length;
   const tabs: { key: string; label: string; statuses?: ExpenseStatus[] }[] = [
     { key: "sem-relatorio", label: "Sem relatório", statuses: ["sem_relatorio", "ignorada"] },

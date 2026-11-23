@@ -1,5 +1,6 @@
 import "server-only";
 import { createHmac, timingSafeEqual } from "node:crypto";
+import { cache } from "react";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
@@ -33,7 +34,8 @@ export async function endSession(): Promise<void> {
   (await cookies()).delete(COOKIE);
 }
 
-export async function currentUser(): Promise<Employee | null> {
+/** Usuário logado; lido uma vez por requisição (layout e página compartilham). */
+export const currentUser = cache(async function currentUser(): Promise<Employee | null> {
   const raw = (await cookies()).get(COOKIE)?.value;
   if (!raw) return null;
   const [value, signature] = raw.split(".");
@@ -43,7 +45,7 @@ export async function currentUser(): Promise<Employee | null> {
   if (expected.length !== actual.length || !timingSafeEqual(expected, actual)) return null;
   const user = await (await getDb()).select().from(employees).where(eq(employees.id, Number(value))).get();
   return user?.active ? user : null;
-}
+});
 
 export async function requireUser(): Promise<Employee> {
   const user = await currentUser();

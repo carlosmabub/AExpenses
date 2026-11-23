@@ -17,8 +17,7 @@ export default async function ExpensePage({ params, searchParams }: { params: Pr
   const { voltar } = await searchParams;
   const user = await requireUser();
   const db = await getDb();
-  const at = await now(db);
-  const row = await getExpense(db, Number(id));
+  const [at, row, categoryList, open] = await Promise.all([now(db), getExpense(db, Number(id)), listCategories(db), openReports(db, user.id)]);
   if (!row || row.owner?.id !== user.id || new Date(row.e.availableAt) > at) notFound();
   const { e, tx } = row;
   const back = voltar?.startsWith("/app") ? voltar : "/app/despesas";
@@ -42,8 +41,8 @@ export default async function ExpensePage({ params, searchParams }: { params: Pr
           returnedComment: row.status === "devolvida" ? e.reviewComment : undefined,
           reportName: row.report?.name,
         }}
-        categories={(await listCategories(db)).map((c) => ({ id: c.id, name: c.name, requiresReceipt: c.requiresReceipt }))}
-        reports={(await openReports(db, user.id)).map((r) => ({ id: r.id, name: r.name }))}
+        categories={categoryList.map((c) => ({ id: c.id, name: c.name, requiresReceipt: c.requiresReceipt }))}
+        reports={open.map((r) => ({ id: r.id, name: r.name }))}
         defaults={{ categoryId: e.categoryId ?? e.suggestedCategoryId, description: e.description, costCenter: e.savedAt ? e.costCenter : user.costCenter, reportId: e.reportId }}
         hasReceipt={!!e.receiptPath}
         lockReport={row.status === "devolvida"}

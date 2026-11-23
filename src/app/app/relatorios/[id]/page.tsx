@@ -15,13 +15,19 @@ import { addExpensesAction, removeExpenseAction, submitReportAction, updateRepor
 export default async function ReportPage({ params }: { params: Promise<{ id: string }> }) {
   const user = await requireUser();
   const db = await getDb();
-  const summary = await getReport(db, Number((await params).id));
+  const reportId = Number((await params).id);
+  const [summary, categoryList, mine, freeList] = await Promise.all([
+    getReport(db, reportId),
+    listCategories(db, false),
+    listEmployeeExpenses(db, user.id),
+    openAdvances(db, user.id),
+  ]);
   if (!summary || summary.report.employeeId !== user.id) notFound();
   const { report } = summary;
-  const icons = new Map((await listCategories(db, false)).map((c) => [c.id, c.icon]));
+  const icons = new Map(categoryList.map((c) => [c.id, c.icon]));
   const open = report.status === "aberto";
-  const available = open ? (await listEmployeeExpenses(db, user.id)).filter((e) => e.status === "sem_relatorio" || e.status === "ignorada") : [];
-  const freeAdvances = open ? await openAdvances(db, user.id) : [];
+  const available = open ? mine.filter((e) => e.status === "sem_relatorio" || e.status === "ignorada") : [];
+  const freeAdvances = open ? freeList : [];
   const advanceOptions = [...summary.advances, ...freeAdvances].map((a) => ({ id: a.id, label: `${money(a.amountCents)} em ${date(a.date)}, ${a.description}` }));
   const self = `/app/relatorios/${report.id}`;
   const balance = summary.advanceBalanceCents;

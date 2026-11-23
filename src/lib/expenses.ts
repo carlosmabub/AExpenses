@@ -64,8 +64,16 @@ export async function listEmployeeExpenses(db: DbLike, employeeId: number): Prom
 }
 
 export async function listReportExpenses(db: DbLike, reportId: number): Promise<ExpenseRow[]> {
-  const at = await now(db);
-  const rows = await baseQuery(db).where(eq(expenses.reportId, reportId)).orderBy(asc(expenses.purchaseDate), asc(expenses.id)).all();
+  return listExpensesOfReports(db, [reportId]);
+}
+
+/** Despesas de vários relatórios numa consulta só. */
+export async function listExpensesOfReports(db: DbLike, reportIds: number[]): Promise<ExpenseRow[]> {
+  if (!reportIds.length) return [];
+  const [at, rows] = await Promise.all([
+    now(db),
+    baseQuery(db).where(inArray(expenses.reportId, reportIds)).orderBy(asc(expenses.purchaseDate), asc(expenses.id)).all(),
+  ]);
   return rows.map((r) => toRow(r, at));
 }
 

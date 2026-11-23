@@ -10,8 +10,9 @@ import { TopBar } from "@/components/mobile/top-bar";
 export default async function MenuPage() {
   const user = await requireUser();
   const db = await getDb();
-  const pending = (await listEmployeeExpenses(db, user.id)).filter((e) => e.status === "sem_relatorio" || e.status === "devolvida").length;
-  const reports = (await listEmployeeReports(db, user.id)).filter((r) => r.stage !== "aprovado").length;
+  const [expenseList, reportList] = await Promise.all([listEmployeeExpenses(db, user.id), listEmployeeReports(db, user.id)]);
+  const pending = expenseList.filter((e) => e.status === "sem_relatorio" || e.status === "devolvida").length;
+  const reports = reportList.filter((r) => r.stage !== "aprovado").length;
   const items = [
     { href: "/app/despesas", label: "Despesas", Icon: ReceiptText, count: pending },
     { href: "/app/relatorios", label: "Relatórios", Icon: FolderOpen, count: reports },

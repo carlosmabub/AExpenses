@@ -2,7 +2,7 @@ import { and, asc, desc, eq, inArray, isNull } from "drizzle-orm";
 import type { Db, DbLike } from "@/db";
 import { advances, employees, expenses, reports, type Advance, type Report } from "@/db/schema";
 import { now } from "@/lib/clock";
-import { ExpenseError, listReportExpenses, type ExpenseRow } from "@/lib/expenses";
+import { ExpenseError, listExpensesOfReports, type ExpenseRow } from "@/lib/expenses";
 
 import type { ReportStage } from "@/lib/status";
 
@@ -30,16 +30,14 @@ function stageOf(report: Report, rows: ExpenseRow[]): ReportStage {
   return rows.some((r) => r.e.reviewStatus === "devolvida") ? "com_devolucao" : "em_aprovacao";
 }
 
-export async function summarize(db: DbLike, report: Report): Promise<ReportSummary> {
-  const rows = (await listReportExpenses(db, report.id)).filter((r) => r.e.kind !== "estorno");
-  const adv = await db.select().from(advances).where(eq(advances.reportId, report.id)).orderBy(asc(advances.date)).all();
-  const owner = await db.select({ id: employees.id, name: employees.name }).from(employees).where(eq(employees.id, report.employeeId)).get();
+function build(report: Report, allRows: ExpenseRow[], adv: Advance[], owner: { id: number; name: string } | null): ReportSummary {
+  const rows = allRows.filter((r) => r.e.kind !== "estorno");
   const sum = (list: ExpenseRow[]) => list.reduce((s, r) => s + r.e.amountCents, 0);
   const advancedCents = adv.reduce((s, a) => s + a.amountCents, 0);
   const spentFromAdvanceCents = sum(rows.filter((r) => r.e.paymentMethod === "adiantamento"));
   return {
     report,
-    owner: owner ?? null,
+    owner,
     stage: stageOf(report, rows),
     expenses: rows,
     advances: adv,
@@ -52,6 +50,31 @@ export async function summarize(db: DbLike, report: Report): Promise<ReportSumma
   };
 }
 
+/** Resumo de vários relatórios com três consultas no total (despesas, adiantamentos, donos). */
+async function summarizeAll(db: DbLike, list: Report[]): Promise<ReportSummary[]> {
+  if (!list.length) return [];
+  const ids = list.map((r) => r.id);
+  const ownerIds = [...new Set(list.map((r) => r.employeeId))];
+  const [rows, adv, owners] = await Promise.all([
+    listExpensesOfReports(db, ids),
+    db.select().from(advances).where(inArray(advances.reportId, ids)).orderBy(asc(advances.date)).all(),
+    db.select({ id: employees.id, name: employees.name }).from(employees).where(inArray(employees.id, ownerIds)).all(),
+  ]);
+  const ownerById = new Map(owners.map((o) => [o.id, o]));
+  return list.map((report) =>
+    build(
+      report,
+      rows.filter((r) => r.e.reportId === report.id),
+      adv.filter((a) => a.reportId === report.id),
+      ownerById.get(report.employeeId) ?? null,
+    ),
+  );
+}
+
+export async function summarize(db: DbLike, report: Report): Promise<ReportSummary> {
+  return (await summarizeAll(db, [report]))[0];
+}
+
 export async function getReport(db: DbLike, reportId: number): Promise<ReportSummary | undefined> {
   const report = await db.select().from(reports).where(eq(reports.id, reportId)).get();
   return report ? summarize(db, report) : undefined;
@@ -59,13 +82,13 @@ export async function getReport(db: DbLike, reportId: number): Promise<ReportSum
 
 export async function listEmployeeReports(db: DbLike, employeeId: number): Promise<ReportSummary[]> {
   const rows = await db.select().from(reports).where(eq(reports.employeeId, employeeId)).orderBy(desc(reports.id)).all();
-  return Promise.all(rows.map((r) => summarize(db, r)));
+  return summarizeAll(db, rows);
 }
 
 /** Relatórios enviados, para o aprovador (por enquanto o financeiro). */
 export async function listReportsForApproval(db: DbLike): Promise<ReportSummary[]> {
   const rows = await db.select().from(reports).where(inArray(reports.status, ["enviado", "aprovado"])).orderBy(desc(reports.submittedAt)).all();
-  return Promise.all(rows.map((r) => summarize(db, r)));
+  return summarizeAll(db, rows);
 }
 
 /** Adiantamentos do funcionário ainda não acertados em nenhum relatório. */
